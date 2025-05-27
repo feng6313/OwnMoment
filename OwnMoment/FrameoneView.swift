@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import Photos
+import CoreLocation
+import ImageIO
 
 struct FrameoneView: View {
     @Environment(\.presentationMode) var presentationMode
@@ -104,7 +107,7 @@ struct FrameoneView: View {
                         HStack(spacing: 4) {
                             Image("map_s")
                                 .resizable()
-                                .frame(width: 15, height: 15)
+                                .frame(width: 14, height: 14)
                             
                             Text(getLocationText())
                                 .font(.system(size: 14, weight: .regular))
@@ -229,36 +232,137 @@ extension FrameoneView {
     func getLocationText() -> String {
         // 如果有selectedImage，尝试从其中读取地理位置元数据
         if let image = selectedImage {
-            // 实际项目中，应该使用以下方法获取地理位置：
-            // 1. 如果是从相册选择的照片，可以使用PHAsset获取位置信息
-            // 2. 如果是直接传入的UIImage，可以尝试从其metadata中读取EXIF信息
-            // 3. 获取到经纬度后，可以使用CLGeocoder进行反地理编码获取地点名称
+            // 首先尝试从PHAsset中获取位置信息（如果有）
+            if let location = getLocationFromPHAsset() {
+                return location
+            }
             
-            // 以下是示例代码，实际项目中需要替换为真实实现
-            // 模拟从照片中读取地理位置信息
+            // 如果无法从PHAsset获取，则尝试从图片EXIF数据中获取
             if let location = getLocationFromImage(image) {
                 return location
-            } else {
-                return "xx·xx" // 无法获取地理位置时的默认值
             }
+            
+            return "xx·xx" // 无法获取地理位置时的默认值
         }
         
         return "xx·xx" // 没有照片时的默认值
     }
     
-    // 从图片中获取地理位置信息（模拟函数）
-    // 实际项目中应该实现真正的地理位置获取逻辑
+    // 从PHAsset中获取地理位置信息
+    private func getLocationFromPHAsset() -> String? {
+        // 注意：这个函数需要在实际项目中实现
+        // 需要保存选择照片时对应的PHAsset引用
+        // 这里仅提供示例代码框架
+        
+        // 假设我们有一个存储选中照片对应PHAsset的属性
+        // var selectedAsset: PHAsset?
+        
+        // guard let asset = selectedAsset, asset.location != nil else {
+        //     return nil
+        // }
+        
+        // let location = asset.location!
+        // let geocoder = CLGeocoder()
+        // var locationString: String? = nil
+        
+        // let semaphore = DispatchSemaphore(value: 0)
+        
+        // geocoder.reverseGeocodeLocation(location) { placemarks, error in
+        //     defer { semaphore.signal() }
+        //     
+        //     if let error = error {
+        //         print("反地理编码错误: \(error.localizedDescription)")
+        //         return
+        //     }
+        //     
+        //     guard let placemark = placemarks?.first else {
+        //         print("未找到地标信息")
+        //         return
+        //     }
+        //     
+        //     if let country = placemark.country, let locality = placemark.locality {
+        //         locationString = "\(country)·\(locality)"
+        //     } else if let country = placemark.country {
+        //         locationString = "\(country)"
+        //     } else if let locality = placemark.locality {
+        //         locationString = "\(locality)"
+        //     }
+        // }
+        
+        // _ = semaphore.wait(timeout: .now() + 5)
+        // return locationString
+        
+        // 由于我们没有实际的PHAsset引用，这里返回nil
+        return nil
+    }
+    
+    // 从图片中获取地理位置信息
     private func getLocationFromImage(_ image: UIImage) -> String? {
-        // 这里应该实现从图片中提取地理位置信息的逻辑
-        // 例如：从图片的EXIF数据中获取GPS信息，然后使用CLGeocoder进行反地理编码
+        // 尝试从图片的EXIF数据中获取GPS信息
+        guard let imageData = image.jpegData(compressionQuality: 1.0) else {
+            print("无法获取图片数据")
+            return nil
+        }
         
-        // 实际项目中，应该尝试从图片的EXIF数据中读取GPS信息
-        // 如果成功获取到GPS信息，则使用CLGeocoder进行反地理编码获取地点名称
-        // 这里为了演示，直接返回模拟的地理位置信息
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil) else {
+            print("无法创建图片源")
+            return nil
+        }
         
-        // 模拟成功获取地理位置
-        // 实际项目中应返回真实的地理位置信息
-        let locations = ["中国·北京", "中国·上海", "中国·广州", "中国·深圳", "中国·杭州"]
-        return locations[Int.random(in: 0..<locations.count)]
+        guard let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+              let exifDict = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any],
+              let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] else {
+            print("无法获取图片元数据或GPS信息")
+            return nil
+        }
+        
+        // 提取经纬度信息
+        guard let latitudeRef = gpsDict[kCGImagePropertyGPSLatitudeRef as String] as? String,
+              let latitude = gpsDict[kCGImagePropertyGPSLatitude as String] as? Double,
+              let longitudeRef = gpsDict[kCGImagePropertyGPSLongitudeRef as String] as? String,
+              let longitude = gpsDict[kCGImagePropertyGPSLongitude as String] as? Double else {
+            print("无法获取完整的经纬度信息")
+            return nil
+        }
+        
+        // 根据参考方向调整经纬度值
+        let finalLatitude = latitudeRef == "N" ? latitude : -latitude
+        let finalLongitude = longitudeRef == "E" ? longitude : -longitude
+        
+        // 使用CLGeocoder进行反地理编码
+        let location = CLLocation(latitude: finalLatitude, longitude: finalLongitude)
+        let geocoder = CLGeocoder()
+        var locationString: String? = nil
+        
+        // 创建一个信号量来等待异步操作完成
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            defer { semaphore.signal() }
+            
+            if let error = error {
+                print("反地理编码错误: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let placemark = placemarks?.first else {
+                print("未找到地标信息")
+                return
+            }
+            
+            // 构建地理位置字符串
+            if let country = placemark.country, let locality = placemark.locality {
+                locationString = "\(country)·\(locality)"
+            } else if let country = placemark.country {
+                locationString = "\(country)"
+            } else if let locality = placemark.locality {
+                locationString = "\(locality)"
+            }
+        }
+        
+        // 等待反地理编码完成，最多等待5秒
+        _ = semaphore.wait(timeout: .now() + 5)
+        
+        return locationString ?? "xx·xx"
     }
 }
