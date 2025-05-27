@@ -351,7 +351,7 @@ extension FrameoneView {
         formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
         
         if let date = formatter.date(from: dateString) {
-            formatter.dateFormat = "yyyy-MM-dd"
+            formatter.dateFormat = "yyyy:MM:dd"
             return formatter.string(from: date)
         }
         
