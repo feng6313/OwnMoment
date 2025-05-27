@@ -96,16 +96,16 @@ struct FrameoneView: View {
                     .offset(y: -42) // 向上移动42点
                     
                     // 添加图片下方的文字信息
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("我的独家记忆")
-                            .font(.system(size: 15, weight: .medium))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(truncateText("我的独家记忆我的独家记忆我的独家记忆我的", maxLength: 15))
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(hex: "#1C1E22"))
                         
                         Text(getLocationText())
-                            .font(.system(size: 12, weight: .regular))
+                            .font(.system(size: 14, weight: .regular))
                             .foregroundColor(Color(hex: "#1C1E22"))
                     }
-                    .padding(.top, 40) // 向下移动40点
+                    .padding(.top, 350) // 向下移动350点
                     .padding(.leading, 0) // 移除左边距
                     .frame(width: 339, alignment: .leading) // 与蓝色显示区宽度一致
                 }
@@ -208,26 +208,53 @@ extension FrameoneView {
         return CGSize(width: limitedX, height: limitedY)
     }
     
+    // 截断文本，超过指定长度的部分用...代替
+    func truncateText(_ text: String, maxLength: Int) -> String {
+        if text.count <= maxLength {
+            return text
+        } else {
+            let index = text.index(text.startIndex, offsetBy: maxLength)
+            return String(text[..<index]) + "..."
+        }
+    }
+    
     // 获取照片地理位置信息
     func getLocationText() -> String {
-        // 这里应该实现读取照片的地理位置信息的逻辑
-        // 目前返回默认值，后续可以替换为实际的地理位置读取逻辑
-        
-        // 如果有selectedImage，可以尝试从其中读取地理位置元数据
-        if let _ = selectedImage {
-            // 模拟无法读取地理位置的情况
-            // 实际实现中，应该使用PHAsset或CLGeocoder等API获取和解析地理位置
-            let hasLocation = false
+        // 如果有selectedImage，尝试从其中读取地理位置元数据
+        if let image = selectedImage {
+            // 实际项目中，应该使用以下方法获取地理位置：
+            // 1. 如果是从相册选择的照片，可以使用PHAsset获取位置信息
+            // 2. 如果是直接传入的UIImage，可以尝试从其metadata中读取EXIF信息
+            // 3. 获取到经纬度后，可以使用CLGeocoder进行反地理编码获取地点名称
             
-            if hasLocation {
-                // 模拟成功获取地理位置
-                return "中国·北京"
+            // 以下是示例代码，实际项目中需要替换为真实实现
+            // 模拟从照片中读取地理位置信息
+            if let location = getLocationFromImage(image) {
+                return location
             } else {
-                // 无法获取地理位置时的默认值
-                return "xx·xx"
+                return "xx·xx" // 无法获取地理位置时的默认值
             }
         }
         
-        return "xx·xx"
+        return "xx·xx" // 没有照片时的默认值
+    }
+    
+    // 从图片中获取地理位置信息（模拟函数）
+    // 实际项目中应该实现真正的地理位置获取逻辑
+    private func getLocationFromImage(_ image: UIImage) -> String? {
+        // 这里应该实现从图片中提取地理位置信息的逻辑
+        // 例如：从图片的EXIF数据中获取GPS信息，然后使用CLGeocoder进行反地理编码
+        
+        // 模拟有50%的概率能够获取到地理位置
+        let hasLocation = Bool.random()
+        
+        if hasLocation {
+            // 模拟成功获取地理位置
+            // 实际项目中应返回真实的地理位置信息
+            let locations = ["中国·北京", "中国·上海", "中国·广州", "中国·深圳", "中国·杭州"]
+            return locations[Int.random(in: 0..<locations.count)]
+        } else {
+            return nil // 无法获取地理位置
+        }
     }
 }
