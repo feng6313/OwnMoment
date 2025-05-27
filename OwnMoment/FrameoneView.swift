@@ -147,51 +147,98 @@ struct FrameoneView: View {
                         .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
-                    HStack(spacing: 40) {
-                        VStack(spacing: 10) {
-                            IconOptionButton(imageName: "color", title: "颜色", isSelected: selectedColorOption == 0) {
-                                selectedColorOption = 0
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 24) // 左侧距离屏幕24点
+                        
+                        // 颜色选项
+                        Button(action: {
+                            selectedColorOption = 0
+                        }) {
+                            ZStack {
+                                // 圆角矩形框
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(hex: "#1C1E22"))
+                                    .frame(width: 107, height: 70)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .strokeBorder(selectedColorOption == 0 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
+                                    )
+                                
+                                // 图标和文字
+                                VStack(spacing: 5) {
+                                    Image("color")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 20, height: 20)
+                                    
+                                    Text("颜色")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white)
+                                }
                             }
-                            
-                            // 圆角矩形框
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(hex: "#1C1E22"))
-                                .frame(width: 107, height: 70)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .strokeBorder(selectedColorOption == 0 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
-                                )
                         }
                         
-                        VStack(spacing: 10) {
-                            IconOptionButton(imageName: "word", title: "文字", isSelected: false) {
-                                // 处理文字选项的点击
+                        Spacer() // 中间自动分配空间
+                        
+                        // 文字选项
+                        Button(action: {
+                            // 处理文字选项的点击
+                        }) {
+                            ZStack {
+                                // 圆角矩形框
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(hex: "#1C1E22"))
+                                    .frame(width: 107, height: 70)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .strokeBorder(Color(hex: "#3E3E3E"), lineWidth: 2)
+                                    )
+                                
+                                // 图标和文字
+                                VStack(spacing: 5) {
+                                    Image("word")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 20, height: 20)
+                                    
+                                    Text("文字")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white)
+                                }
                             }
-                            
-                            // 圆角矩形框
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(hex: "#1C1E22"))
-                                .frame(width: 107, height: 70)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .strokeBorder(Color(hex: "#3E3E3E"), lineWidth: 2)
-                                )
                         }
                         
-                        VStack(spacing: 10) {
-                            IconOptionButton(imageName: "more", title: "更多", isSelected: false) {
-                                // 处理更多选项的点击
+                        Spacer() // 中间自动分配空间
+                        
+                        // 更多选项
+                        Button(action: {
+                            // 处理更多选项的点击
+                        }) {
+                            ZStack {
+                                // 圆角矩形框
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(hex: "#1C1E22"))
+                                    .frame(width: 107, height: 70)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .strokeBorder(Color(hex: "#3E3E3E"), lineWidth: 2)
+                                    )
+                                
+                                // 图标和文字
+                                VStack(spacing: 5) {
+                                    Image("more")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 20, height: 20)
+                                    
+                                    Text("更多")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white)
+                                }
                             }
-                            
-                            // 圆角矩形框
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(hex: "#1C1E22"))
-                                .frame(width: 107, height: 70)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .strokeBorder(Color(hex: "#3E3E3E"), lineWidth: 2)
-                                )
                         }
+                        
+                        Spacer(minLength: 24) // 右侧距离屏幕24点
                     }
                     .offset(y: 455/2 + 24 + 44) // 滑动选择按钮下方44点的位置
                     
