@@ -146,7 +146,23 @@ struct FrameoneView: View {
                     SlideSelector(selectedOption: $selectedColorOption)
                         .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
                     
-                    // 添加颜色选择器，放在滑动选择按钮下方
+                    // 添加图标选项栏，放在滑动选择按钮下方
+                    HStack(spacing: 40) {
+                        IconOptionButton(imageName: "color", title: "颜色", isSelected: selectedColorOption == 0) {
+                            selectedColorOption = 0
+                        }
+                        
+                        IconOptionButton(imageName: "word", title: "文字") {
+                            // 处理文字选项的点击
+                        }
+                        
+                        IconOptionButton(imageName: "more", title: "更多") {
+                            // 处理更多选项的点击
+                        }
+                    }
+                    .offset(y: 455/2 + 24 + 44) // 滑动选择按钮下方10点的位置
+                    
+                    // 添加颜色选择器，放在图标选项栏下方
                     ColorSelector(
                         selectedOption: $selectedColorOption,
                         frameColor: $frameColor,
@@ -155,7 +171,7 @@ struct FrameoneView: View {
                         locationTextColor: $locationTextColor,
                         iconColor: $iconColor
                     )
-                    .offset(y: 455/2 + 24 + 64) // 滑动选择按钮下方12点的位置
+                    .offset(y: 455/2 + 24 + 44 + 50) // 图标选项栏下方10点的位置
                 }
                 
                 Spacer() // 填充剩余空间
@@ -249,6 +265,45 @@ struct ColorSelector_Previews: PreviewProvider {
             locationTextColor: .constant(.black),
             iconColor: .constant(.black)
         )
+    }
+}
+
+// 图标选项按钮组件
+struct IconOptionButton: View {
+    let imageName: String
+    let title: String
+    var isSelected: Bool = false
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(imageName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 20, height: 20)
+                    .foregroundColor(isSelected ? Color(hex: "#007AFF") : .white)
+                
+                Text(title)
+                    .font(.system(size: 12))
+                    .foregroundColor(isSelected ? Color(hex: "#007AFF") : .white)
+            }
+        }
+    }
+}
+
+// 为IconOptionButton添加预览
+struct IconOptionButton_Previews: PreviewProvider {
+    static var previews: some View {
+        HStack(spacing: 40) {
+            IconOptionButton(imageName: "color", title: "颜色", isSelected: true) {}
+            IconOptionButton(imageName: "word", title: "文字") {}
+            IconOptionButton(imageName: "more", title: "更多") {}
+        }
+        .padding()
+        .background(Color.black)
+        .previewLayout(.sizeThatFits)
     }
 }
 
@@ -425,7 +480,7 @@ struct ColorSelector: View {
             // 在视图出现时，根据当前颜色值更新selectedIndices
             updateSelectedIndices()
         }
-        .onChange(of: selectedOption) { _ in
+        .onChange(of: selectedOption) { oldValue, newValue in
             // 当选项改变时，确保UI反映正确的选中状态
             // 这里不需要额外操作，因为我们在colorCircle中已经处理了
         }
