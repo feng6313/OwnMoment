@@ -21,6 +21,11 @@ struct FrameoneView: View {
     @State private var currentPosition: CGSize = .zero
     @State private var previousPosition: CGSize = .zero
     
+    // 添加设置相关的状态变量
+    @State private var isSettingsPresented = false
+    @State private var customDate = Date()
+    @State private var customLocation = ""
+    
     // 蓝色显示区域的尺寸常量
     private let displayAreaSize: CGFloat = 339
 
@@ -153,17 +158,26 @@ struct FrameoneView: View {
                     .foregroundColor(.white)
                     .font(.headline)
             }
-            // 右侧保存按钮
+            // 右侧设置和保存按钮
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    // 保存按钮的操作
-                }) {
-                    Text("保存")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(width: 60, height: 30, alignment: .center)
-                        .background(Color(hex: "#007AFF"))
-                        .cornerRadius(15)
+                HStack(spacing: 10) {
+                    Button(action: {
+                        isSettingsPresented = true
+                    }) {
+                        Image(systemName: "gear")
+                            .foregroundColor(.white)
+                    }
+                    
+                    Button(action: {
+                        // 保存按钮的操作
+                    }) {
+                        Text("保存")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 60, height: 30, alignment: .center)
+                            .background(Color(hex: "#007AFF"))
+                            .cornerRadius(15)
+                    }
                 }
             }
 
@@ -172,6 +186,12 @@ struct FrameoneView: View {
             // 如果需要精确控制，可能需要更复杂的Toolbar布局。
             // 此处按钮本身已按要求设置尺寸和颜色。
         }
+    }
+    .sheet(isPresented: $isSettingsPresented) {
+        SettingsView(
+            customDate: $customDate,
+            customLocation: $customLocation
+        )
     }
 }
 
@@ -183,6 +203,12 @@ struct FrameoneView_Previews: PreviewProvider {
         NavigationView {
             FrameoneView(selectedImage: UIImage(named: "photo"), frameIndex: 0)
         }
+    }
+    .sheet(isPresented: $isSettingsPresented) {
+        SettingsView(
+            customDate: $customDate,
+            customLocation: $customLocation
+        )
     }
 }
 
@@ -239,6 +265,11 @@ extension FrameoneView {
     
     // 获取照片地理位置信息
     func getLocationText() -> String {
+        // 如果设置了自定义位置，优先使用自定义位置
+        if !customLocation.isEmpty {
+            return customLocation
+        }
+        
         // 如果有selectedImage，尝试从其中读取地理位置元数据
         if let image = selectedImage {
             // 首先尝试从PHAsset中获取位置信息（如果有）
@@ -250,11 +281,9 @@ extension FrameoneView {
             if let location = getLocationFromImage(image) {
                 return location
             }
-            
-            return "xx·xx" // 无法获取地理位置时的默认值
         }
         
-        return "xx·xx" // 没有照片时的默认值
+        return "xx·xx" // 无法获取地理位置或没有照片时的默认值
     }
     
     // 从PHAsset中获取地理位置信息
@@ -307,41 +336,10 @@ extension FrameoneView {
     
     // 获取图片拍摄日期
     private func getImageDate(_ image: UIImage) -> String? {
-        guard let imageData = image.jpegData(compressionQuality: 1.0) else {
-            print("无法获取图片数据")
-            return nil
-        }
-        
-        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil) else {
-            print("无法创建图片源")
-            return nil
-        }
-        
-        guard let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else {
-            print("无法获取图片元数据")
-            return nil
-        }
-        
-        // 尝试获取EXIF字典
-        if let exifDict = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any] {
-            // 首先尝试获取数字化时间
-            if let dateString = exifDict[kCGImagePropertyExifDateTimeDigitized as String] as? String {
-                return formatExifDate(dateString)
-            }
-            
-            // 如果没有数字化时间，尝试获取原始时间
-            if let dateString = exifDict[kCGImagePropertyExifDateTimeOriginal as String] as? String {
-                return formatExifDate(dateString)
-            }
-        }
-        
-        // 如果EXIF中没有找到，尝试获取TIFF字典中的时间
-        if let tiffDict = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any],
-           let dateString = tiffDict[kCGImagePropertyTIFFDateTime as String] as? String {
-            return formatExifDate(dateString)
-        }
-        
-        return nil
+        // 使用自定义日期
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy:MM:dd"
+        return formatter.string(from: customDate)
     }
     
     // 格式化EXIF日期字符串
