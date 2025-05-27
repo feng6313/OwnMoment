@@ -309,25 +309,60 @@ extension FrameoneView {
             return nil
         }
         
-        guard let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
-              let exifDict = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any],
-              let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] else {
-            print("无法获取图片元数据或GPS信息")
+        guard let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else {
+            print("无法获取图片元数据")
             return nil
         }
         
-        // 提取经纬度信息
-        guard let latitudeRef = gpsDict[kCGImagePropertyGPSLatitudeRef as String] as? String,
-              let latitude = gpsDict[kCGImagePropertyGPSLatitude as String] as? Double,
-              let longitudeRef = gpsDict[kCGImagePropertyGPSLongitudeRef as String] as? String,
-              let longitude = gpsDict[kCGImagePropertyGPSLongitude as String] as? Double else {
-            print("无法获取完整的经纬度信息")
+        // 检查是否存在GPS字典
+        guard let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] else {
+            print("图片中不包含GPS信息")
             return nil
         }
         
-        // 根据参考方向调整经纬度值
-        let finalLatitude = latitudeRef == "N" ? latitude : -latitude
-        let finalLongitude = longitudeRef == "E" ? longitude : -longitude
+        // 提取经纬度信息 - 处理不同格式的GPS数据
+        var finalLatitude: Double = 0
+        var finalLongitude: Double = 0
+        
+        // 处理标准格式的GPS数据
+        if let latitudeRef = gpsDict[kCGImagePropertyGPSLatitudeRef as String] as? String,
+           let latitude = gpsDict[kCGImagePropertyGPSLatitude as String] as? Double,
+           let longitudeRef = gpsDict[kCGImagePropertyGPSLongitudeRef as String] as? String,
+           let longitude = gpsDict[kCGImagePropertyGPSLongitude as String] as? Double {
+            
+            finalLatitude = latitudeRef == "N" ? latitude : -latitude
+            finalLongitude = longitudeRef == "E" ? longitude : -longitude
+        }
+        // 处理某些设备可能使用的数组格式GPS数据
+        else if let latitudeArray = gpsDict[kCGImagePropertyGPSLatitude as String] as? [Double],
+                let latitudeRef = gpsDict[kCGImagePropertyGPSLatitudeRef as String] as? String,
+                let longitudeArray = gpsDict[kCGImagePropertyGPSLongitude as String] as? [Double],
+                let longitudeRef = gpsDict[kCGImagePropertyGPSLongitudeRef as String] as? String,
+                !latitudeArray.isEmpty && !longitudeArray.isEmpty {
+            
+            // 将度分秒格式转换为十进制度
+            let latDegrees = latitudeArray[0]
+            let latMinutes = latitudeArray.count > 1 ? latitudeArray[1] / 60.0 : 0
+            let latSeconds = latitudeArray.count > 2 ? latitudeArray[2] / 3600.0 : 0
+            let rawLatitude = latDegrees + latMinutes + latSeconds
+            
+            let lonDegrees = longitudeArray[0]
+            let lonMinutes = longitudeArray.count > 1 ? longitudeArray[1] / 60.0 : 0
+            let lonSeconds = longitudeArray.count > 2 ? longitudeArray[2] / 3600.0 : 0
+            let rawLongitude = lonDegrees + lonMinutes + lonSeconds
+            
+            finalLatitude = latitudeRef == "N" ? rawLatitude : -rawLatitude
+            finalLongitude = longitudeRef == "E" ? rawLongitude : -rawLongitude
+        } else {
+            print("无法解析GPS数据格式")
+            return nil
+        }
+        
+        // 验证经纬度是否在有效范围内
+        if abs(finalLatitude) > 90 || abs(finalLongitude) > 180 {
+            print("经纬度值超出有效范围")
+            return nil
+        }
         
         // 使用CLGeocoder进行反地理编码
         let location = CLLocation(latitude: finalLatitude, longitude: finalLongitude)
@@ -350,19 +385,33 @@ extension FrameoneView {
                 return
             }
             
-            // 构建地理位置字符串
-            if let country = placemark.country, let locality = placemark.locality {
+            // 构建地理位置字符串 - 优先使用城市和区域信息
+            if let locality = placemark.locality, let subLocality = placemark.subLocality {
+                // 城市和区，例如：北京·朝阳区
+                locationString = "\(locality)·\(subLocality)"
+            } else if let country = placemark.country, let locality = placemark.locality {
+                // 国家和城市，例如：中国·北京
                 locationString = "\(country)·\(locality)"
-            } else if let country = placemark.country {
-                locationString = "\(country)"
+            } else if let administrativeArea = placemark.administrativeArea, let locality = placemark.locality {
+                // 省和城市，例如：广东·广州
+                locationString = "\(administrativeArea)·\(locality)"
             } else if let locality = placemark.locality {
-                locationString = "\(locality)"
+                // 仅城市，例如：上海
+                locationString = locality
+            } else if let country = placemark.country {
+                // 仅国家，例如：日本
+                locationString = country
+            } else {
+                // 如果没有有意义的地理信息，使用经纬度
+                let latString = String(format: "%.4f", finalLatitude)
+                let lonString = String(format: "%.4f", finalLongitude)
+                locationString = "\(latString),\(lonString)"
             }
         }
         
         // 等待反地理编码完成，最多等待5秒
         _ = semaphore.wait(timeout: .now() + 5)
         
-        return locationString ?? "xx·xx"
+        return locationString
     }
 }
