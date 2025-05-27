@@ -148,19 +148,52 @@ struct FrameoneView: View {
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
                     HStack(spacing: 40) {
-                        IconOptionButton(imageName: "color", title: "颜色", isSelected: selectedColorOption == 0) {
-                            selectedColorOption = 0
+                        VStack(spacing: 10) {
+                            IconOptionButton(imageName: "color", title: "颜色", isSelected: selectedColorOption == 0) {
+                                selectedColorOption = 0
+                            }
+                            
+                            // 圆角矩形框
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: "#1C1E22"))
+                                .frame(width: 107, height: 70)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(selectedColorOption == 0 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
+                                )
                         }
                         
-                        IconOptionButton(imageName: "word", title: "文字") {
-                            // 处理文字选项的点击
+                        VStack(spacing: 10) {
+                            IconOptionButton(imageName: "word", title: "文字", isSelected: false) {
+                                // 处理文字选项的点击
+                            }
+                            
+                            // 圆角矩形框
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: "#1C1E22"))
+                                .frame(width: 107, height: 70)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(Color(hex: "#3E3E3E"), lineWidth: 2)
+                                )
                         }
                         
-                        IconOptionButton(imageName: "more", title: "更多") {
-                            // 处理更多选项的点击
+                        VStack(spacing: 10) {
+                            IconOptionButton(imageName: "more", title: "更多", isSelected: false) {
+                                // 处理更多选项的点击
+                            }
+                            
+                            // 圆角矩形框
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: "#1C1E22"))
+                                .frame(width: 107, height: 70)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(Color(hex: "#3E3E3E"), lineWidth: 2)
+                                )
                         }
                     }
-                    .offset(y: 455/2 + 24 + 44) // 滑动选择按钮下方10点的位置
+                    .offset(y: 455/2 + 24 + 44) // 滑动选择按钮下方44点的位置
                     
                     // 添加颜色选择器，放在图标选项栏下方
                     ColorSelector(
@@ -279,15 +312,13 @@ struct IconOptionButton: View {
         Button(action: action) {
             VStack(spacing: 5) {
                 Image(imageName)
-                    .renderingMode(.template)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 20, height: 20)
-                    .foregroundColor(isSelected ? Color(hex: "#007AFF") : .white)
                 
                 Text(title)
                     .font(.system(size: 12))
-                    .foregroundColor(isSelected ? Color(hex: "#007AFF") : .white)
+                    .foregroundColor(.white)
             }
         }
     }
