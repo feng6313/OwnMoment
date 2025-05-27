@@ -26,6 +26,14 @@ struct FrameoneView: View {
     @State private var customDate = Date()
     @State private var customLocation = ""
     
+    // 添加颜色相关的状态变量
+    @State private var frameColor: Color = .white // 边框颜色
+    @State private var titleTextColor: Color = Color(hex: "#1C1E22") // 标题文字颜色
+    @State private var dateTextColor: Color = Color(hex: "#F56E00") // 时间颜色
+    @State private var locationTextColor: Color = Color(hex: "#1C1E22") // 地点文字颜色
+    @State private var iconColor: Color = Color(hex: "#1C1E22") // 图标颜色
+    @State private var selectedColorOption = 0 // 当前选中的颜色选项
+    
     // 蓝色显示区域的尺寸常量
     private let displayAreaSize: CGFloat = 339
 
@@ -38,9 +46,9 @@ struct FrameoneView: View {
             VStack(spacing: 0) {
                 // 添加白色背景，紧贴导航条
                 ZStack {
-                    // 白色背景，尺寸371*455
+                    // 背景，尺寸371*455，颜色可变
                     Rectangle()
-                        .fill(Color.white)
+                        .fill(frameColor)
                         .frame(width: 371, height: 455)
                     
                     // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
@@ -102,7 +110,7 @@ struct FrameoneView: View {
                                 Text(getImageDate(image) ?? "未知日期")
                                     .font(.custom("Rajdhani", size: 18))
                                     .fontWeight(.semibold)
-                                    .foregroundColor(Color(hex: "#F56E00"))
+                                    .foregroundColor(dateTextColor)
                                     .padding([.bottom, .trailing], 10)
                             }
                         } else {
@@ -116,16 +124,18 @@ struct FrameoneView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(hex: "#1C1E22"))
+                            .foregroundColor(titleTextColor)
                         
                         HStack(spacing: 4) {
                             Image("map_s")
+                                .renderingMode(.template)
                                 .resizable()
                                 .frame(width: 14, height: 14)
+                                .foregroundColor(iconColor)
                             
                             Text(getLocationText())
                                 .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(Color(hex: "#1C1E22"))
+                                .foregroundColor(locationTextColor)
                         }
                     }
                     .padding(.top, 350) // 向下移动350点
@@ -133,8 +143,19 @@ struct FrameoneView: View {
                     .frame(width: 339, alignment: .leading) // 与蓝色显示区宽度一致
                     
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
-                    SlideSelector()
+                    SlideSelector(selectedOption: $selectedColorOption)
                         .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
+                    
+                    // 添加颜色选择器，放在滑动选择按钮下方
+                    ColorSelector(
+                        selectedOption: $selectedColorOption,
+                        frameColor: $frameColor,
+                        titleTextColor: $titleTextColor,
+                        dateTextColor: $dateTextColor,
+                        locationTextColor: $locationTextColor,
+                        iconColor: $iconColor
+                    )
+                    .offset(y: 455/2 + 24 + 64) // 滑动选择按钮下方12点的位置
                 }
                 
                 Spacer() // 填充剩余空间
@@ -210,14 +231,40 @@ struct FrameoneView_Previews: PreviewProvider {
     }
 }
 
+// 为SlideSelector添加预览
+struct SlideSelector_Previews: PreviewProvider {
+    static var previews: some View {
+        SlideSelector(selectedOption: .constant(0))
+    }
+}
+
+// 为ColorSelector添加预览
+struct ColorSelector_Previews: PreviewProvider {
+    static var previews: some View {
+        ColorSelector(
+            selectedOption: .constant(0),
+            frameColor: .constant(.white),
+            titleTextColor: .constant(.black),
+            dateTextColor: .constant(.orange),
+            locationTextColor: .constant(.black),
+            iconColor: .constant(.black)
+        )
+    }
+}
+
 // 滑动选择器组件
 struct SlideSelector: View {
-    @State private var selectedOption = 0
+    @Binding var selectedOption: Int
     @State private var dragOffset: CGFloat = 0
+    
+    // 添加一个初始化方法，用于预览
+    init(selectedOption: Binding<Int>) {
+        self._selectedOption = selectedOption
+    }
     
     private let options = ["边框", "文字", "时间", "地点", "图标"]
     private let selectorWidth: CGFloat = 330
-    private let selectorHeight: CGFloat = 32
+    private let selectorHeight: CGFloat = 34
     private let optionWidth: CGFloat = 66
     private let optionSpacing: CGFloat = 0
     
@@ -285,6 +332,104 @@ struct SlideSelector: View {
                     dragOffset = 0
                 }
         )
+    }
+}
+
+// 颜色选择器组件
+struct ColorSelector: View {
+    // 颜色数组，按照用户提供的顺序
+    private let colors: [[String]] = [
+        ["#FFFFFF", "#1C1E22", "#F4E6E7", "#F2EEE3", "#F56E00", "#CEC3B3"],
+        ["#E5ECDB", "#C3D3DB", "#C3D3DB", "#69733E", "#834643", "#255B85"]
+    ]
+    
+    // 选中的颜色索引，默认选择第一个颜色(#FFFFFF)
+    @State private var selectedRow = 0
+    @State private var selectedColumn = 0
+    
+    // 颜色块大小和间距
+    private let colorSize: CGFloat = 26
+    private let verticalSpacing: CGFloat = 12
+    private let containerWidth: CGFloat = 330 // 与滑动选择器宽度一致
+    
+    // 添加绑定属性，用于接收当前选择的选项和更新颜色
+    @Binding var selectedOption: Int
+    @Binding var frameColor: Color
+    @Binding var titleTextColor: Color
+    @Binding var dateTextColor: Color
+    @Binding var locationTextColor: Color
+    @Binding var iconColor: Color
+    
+    // 添加初始化方法
+    init(selectedOption: Binding<Int>, frameColor: Binding<Color>, titleTextColor: Binding<Color>, 
+         dateTextColor: Binding<Color>, locationTextColor: Binding<Color>, iconColor: Binding<Color>) {
+        self._selectedOption = selectedOption
+        self._frameColor = frameColor
+        self._titleTextColor = titleTextColor
+        self._dateTextColor = dateTextColor
+        self._locationTextColor = locationTextColor
+        self._iconColor = iconColor
+    }
+    
+    var body: some View {
+        VStack(spacing: verticalSpacing) {
+            // 第一行颜色
+            HStack {
+                ForEach(0..<6) { column in
+                    colorCircle(row: 0, column: column)
+                }
+            }
+            
+            // 第二行颜色
+            HStack {
+                ForEach(0..<6) { column in
+                    colorCircle(row: 1, column: column)
+                }
+            }
+        }
+        .frame(width: containerWidth)
+    }
+    
+    // 创建单个颜色圆圈
+    private func colorCircle(row: Int, column: Int) -> some View {
+        let isSelected = (selectedRow == row && selectedColumn == column)
+        let colorHex = colors[row][column]
+        let color = Color(hex: colorHex)
+        
+        return ZStack {
+            // 颜色圆圈
+            Circle()
+                .fill(color)
+                .frame(width: colorSize, height: colorSize)
+            
+            // 选中状态 - 3点白色内描边，只有选中时才显示
+            if isSelected {
+                Circle()
+                    .stroke(Color.white, lineWidth: 3)
+                    .frame(width: colorSize - 6, height: colorSize - 6)
+            }
+        }
+        .frame(maxWidth: .infinity) // 均分容器宽度
+        .onTapGesture {
+            selectedRow = row
+            selectedColumn = column
+            
+            // 根据当前选择的选项更新对应的颜色
+            switch selectedOption {
+            case 0: // 边框
+                frameColor = color
+            case 1: // 文字
+                titleTextColor = color
+            case 2: // 时间
+                dateTextColor = color
+            case 3: // 地点
+                locationTextColor = color
+            case 4: // 图标
+                iconColor = color
+            default:
+                break
+            }
+        }
     }
 }
 
