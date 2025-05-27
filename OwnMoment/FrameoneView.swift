@@ -203,11 +203,6 @@ struct FrameoneView_Previews: PreviewProvider {
         NavigationView {
             FrameoneView(selectedImage: UIImage(named: "photo"), frameIndex: 0)
         }
-    }
-    .sheet(isPresented: $isSettingsPresented) {
-        SettingsView(
-            customDate: $customDate,
-            customLocation: $customLocation
         )
     }
 }
