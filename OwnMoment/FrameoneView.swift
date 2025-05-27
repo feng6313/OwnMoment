@@ -97,13 +97,19 @@ struct FrameoneView: View {
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(truncateText("我的独家记忆我的独家记忆我的独家记忆我的", maxLength: 15))
+                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(hex: "#1C1E22"))
                         
-                        Text(getLocationText())
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(Color(hex: "#1C1E22"))
+                        HStack(spacing: 4) {
+                            Image("map_s")
+                                .resizable()
+                                .frame(width: 15, height: 15)
+                            
+                            Text(getLocationText())
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(Color(hex: "#1C1E22"))
+                        }
                     }
                     .padding(.top, 350) // 向下移动350点
                     .padding(.leading, 0) // 移除左边距
