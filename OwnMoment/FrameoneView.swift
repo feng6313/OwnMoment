@@ -94,6 +94,20 @@ struct FrameoneView: View {
                         }
                     }
                     .offset(y: -42) // 向上移动42点
+                    
+                    // 添加图片下方的文字信息
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("我的独家记忆")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(Color(hex: "#1C1E22"))
+                        
+                        Text(getLocationText())
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(Color(hex: "#1C1E22"))
+                    }
+                    .padding(.top, 10)
+                    .padding(.leading, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
                 Spacer() // 填充剩余空间
@@ -192,5 +206,28 @@ extension FrameoneView {
         let limitedY = min(maxOffsetY, max(-maxOffsetY, offset.height))
         
         return CGSize(width: limitedX, height: limitedY)
+    }
+    
+    // 获取照片地理位置信息
+    func getLocationText() -> String {
+        // 这里应该实现读取照片的地理位置信息的逻辑
+        // 目前返回默认值，后续可以替换为实际的地理位置读取逻辑
+        
+        // 如果有selectedImage，可以尝试从其中读取地理位置元数据
+        if let _ = selectedImage {
+            // 模拟无法读取地理位置的情况
+            // 实际实现中，应该使用PHAsset或CLGeocoder等API获取和解析地理位置
+            let hasLocation = false
+            
+            if hasLocation {
+                // 模拟成功获取地理位置
+                return "中国·北京"
+            } else {
+                // 无法获取地理位置时的默认值
+                return "xx·xx"
+            }
+        }
+        
+        return "xx·xx"
     }
 }
