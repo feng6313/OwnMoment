@@ -51,46 +51,55 @@ struct FrameoneView: View {
                             // let imageHeight = image.size.height
                             // let isWiderThanTall = imageWidth > imageHeight
                             
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill() // 使用fill而不是fit，确保完全填充
-                                .frame(width: displayAreaSize, height: displayAreaSize)
-                                // 应用缩放效果
-                                .scaleEffect(currentScale)
-                                // 应用位置偏移，但限制在显示区域内
-                                .offset(limitOffsetToDisplayArea(currentPosition, scale: currentScale))
-                                // 添加手势识别
-                                .gesture(
-                                    // 组合缩放和拖动手势
-                                    SimultaneousGesture(
-                                        // 缩放手势
-                                        MagnificationGesture()
-                                            .onChanged { value in
-                                                // 限制缩放范围在1.0到5.0之间
-                                                let newScale = min(max(previousScale * value, 1.0), 5.0)
-                                                currentScale = newScale
-                                            }
-                                            .onEnded { value in
-                                                // 保存当前缩放值作为下次手势的基准
-                                                previousScale = currentScale
-                                            },
-                                        // 拖动手势
-                                        DragGesture()
-                                            .onChanged { value in
-                                                // 计算新的位置
-                                                let newPosition = CGSize(
-                                                    width: previousPosition.width + value.translation.width,
-                                                    height: previousPosition.height + value.translation.height
-                                                )
-                                                currentPosition = newPosition
-                                            }
-                                            .onEnded { value in
-                                                // 保存当前位置作为下次手势的基准
-                                                previousPosition = currentPosition
-                                            }
+                            ZStack(alignment: .bottomTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill() // 使用fill而不是fit，确保完全填充
+                                    .frame(width: displayAreaSize, height: displayAreaSize)
+                                    // 应用缩放效果
+                                    .scaleEffect(currentScale)
+                                    // 应用位置偏移，但限制在显示区域内
+                                    .offset(limitOffsetToDisplayArea(currentPosition, scale: currentScale))
+                                    // 添加手势识别
+                                    .gesture(
+                                        // 组合缩放和拖动手势
+                                        SimultaneousGesture(
+                                            // 缩放手势
+                                            MagnificationGesture()
+                                                .onChanged { value in
+                                                    // 限制缩放范围在1.0到5.0之间
+                                                    let newScale = min(max(previousScale * value, 1.0), 5.0)
+                                                    currentScale = newScale
+                                                }
+                                                .onEnded { value in
+                                                    // 保存当前缩放值作为下次手势的基准
+                                                    previousScale = currentScale
+                                                },
+                                            // 拖动手势
+                                            DragGesture()
+                                                .onChanged { value in
+                                                    // 计算新的位置
+                                                    let newPosition = CGSize(
+                                                        width: previousPosition.width + value.translation.width,
+                                                        height: previousPosition.height + value.translation.height
+                                                    )
+                                                    currentPosition = newPosition
+                                                }
+                                                .onEnded { value in
+                                                    // 保存当前位置作为下次手势的基准
+                                                    previousPosition = currentPosition
+                                                }
+                                        )
                                     )
-                                )
-                                .clipped() // 隐藏超出显示区域的部分
+                                    .clipped() // 隐藏超出显示区域的部分
+                                
+                                // 添加日期显示
+                                Text("2023-02-03")
+                                    .font(.custom("Rajdhani", size: 20))
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color(hex: "#F56E00"))
+                                    .padding([.bottom, .trailing], 10)
+                            }
                         } else {
                             Text("未选择图片")
                                 .foregroundColor(.white)
