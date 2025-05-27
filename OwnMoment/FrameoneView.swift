@@ -213,6 +213,7 @@ extension FrameoneView {
         if text.count <= maxLength {
             return text
         } else {
+            // 超过maxLength个字符时，显示前maxLength个字符加...
             let index = text.index(text.startIndex, offsetBy: maxLength)
             return String(text[..<index]) + "..."
         }
@@ -245,16 +246,13 @@ extension FrameoneView {
         // 这里应该实现从图片中提取地理位置信息的逻辑
         // 例如：从图片的EXIF数据中获取GPS信息，然后使用CLGeocoder进行反地理编码
         
-        // 模拟有50%的概率能够获取到地理位置
-        let hasLocation = Bool.random()
+        // 实际项目中，应该尝试从图片的EXIF数据中读取GPS信息
+        // 如果成功获取到GPS信息，则使用CLGeocoder进行反地理编码获取地点名称
+        // 这里为了演示，直接返回模拟的地理位置信息
         
-        if hasLocation {
-            // 模拟成功获取地理位置
-            // 实际项目中应返回真实的地理位置信息
-            let locations = ["中国·北京", "中国·上海", "中国·广州", "中国·深圳", "中国·杭州"]
-            return locations[Int.random(in: 0..<locations.count)]
-        } else {
-            return nil // 无法获取地理位置
-        }
+        // 模拟成功获取地理位置
+        // 实际项目中应返回真实的地理位置信息
+        let locations = ["中国·北京", "中国·上海", "中国·广州", "中国·深圳", "中国·杭州"]
+        return locations[Int.random(in: 0..<locations.count)]
     }
 }
