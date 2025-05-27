@@ -105,9 +105,9 @@ struct FrameoneView: View {
                             .font(.system(size: 12, weight: .regular))
                             .foregroundColor(Color(hex: "#1C1E22"))
                     }
-                    .padding(.top, 10)
-                    .padding(.leading, 16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 40) // 向下移动40点
+                    .padding(.leading, 0) // 移除左边距
+                    .frame(width: 339, alignment: .leading) // 与蓝色显示区宽度一致
                 }
                 
                 Spacer() // 填充剩余空间
