@@ -100,7 +100,7 @@ struct FrameoneView: View {
                                 
                                 // 添加日期显示
                                 Text(getImageDate(image) ?? "未知日期")
-                                    .font(.custom("Rajdhani", size: 20))
+                                    .font(.custom("Rajdhani", size: 18))
                                     .fontWeight(.semibold)
                                     .foregroundColor(Color(hex: "#F56E00"))
                                     .padding([.bottom, .trailing], 10)
@@ -115,7 +115,7 @@ struct FrameoneView: View {
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 2) {
                         Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color(hex: "#1C1E22"))
                         
                         HStack(spacing: 4) {
@@ -131,6 +131,10 @@ struct FrameoneView: View {
                     .padding(.top, 350) // 向下移动350点
                     .padding(.leading, 0) // 移除左边距
                     .frame(width: 339, alignment: .leading) // 与蓝色显示区宽度一致
+                    
+                    // 添加滑动选择按钮，放在白色背景下方10点的位置
+                    SlideSelector()
+                        .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
                 }
                 
                 Spacer() // 填充剩余空间
@@ -186,12 +190,12 @@ struct FrameoneView: View {
             // 如果需要精确控制，可能需要更复杂的Toolbar布局。
             // 此处按钮本身已按要求设置尺寸和颜色。
         }
-    }
-    .sheet(isPresented: $isSettingsPresented) {
-        SettingsView(
-            customDate: $customDate,
-            customLocation: $customLocation
-        )
+        .sheet(isPresented: $isSettingsPresented) {
+            SettingsView(
+                customDate: $customDate,
+                customLocation: $customLocation
+            )
+        }
     }
 }
 
@@ -203,6 +207,83 @@ struct FrameoneView_Previews: PreviewProvider {
         NavigationView {
             FrameoneView(selectedImage: UIImage(named: "photo"), frameIndex: 0)
         }
+    }
+}
+
+// 滑动选择器组件
+struct SlideSelector: View {
+    @State private var selectedOption = 0
+    @State private var dragOffset: CGFloat = 0
+    
+    private let options = ["边框", "文字", "时间", "地点", "图标"]
+    private let selectorWidth: CGFloat = 330
+    private let selectorHeight: CGFloat = 32
+    private let optionWidth: CGFloat = 66
+    private let optionSpacing: CGFloat = 0
+    
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // 黑色背景矩形
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(hex: "#2C2C2E"))
+                .frame(width: selectorWidth, height: selectorHeight)
+            
+            // 灰色选择器
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(hex: "#6B6C70"))
+                .frame(width: optionWidth, height: selectorHeight - 4)
+                .offset(x: 2 + CGFloat(selectedOption) * (optionWidth + optionSpacing) + dragOffset, y: 0)
+                .animation(.spring(), value: selectedOption)
+                .animation(.spring(), value: dragOffset)
+            
+            // 选项文本
+            HStack(spacing: optionSpacing) {
+                ForEach(0..<options.count, id: \.self) { index in
+                    Text(options[index])
+                        .font(.system(size: 12))
+                        .foregroundColor(.white)
+                        .opacity(index == selectedOption ? 1.0 : 0.9)
+                        .frame(width: optionWidth, height: selectorHeight)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedOption = index
+                            dragOffset = 0
+                        }
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .frame(width: selectorWidth, height: selectorHeight)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    let dragAmount = value.translation.width
+                    let optionFullWidth = optionWidth + optionSpacing
+                    
+                    // 限制拖动范围
+                    if (CGFloat(selectedOption) * optionFullWidth + dragAmount < 0) {
+                        dragOffset = -CGFloat(selectedOption) * optionFullWidth
+                    } else if (CGFloat(selectedOption) * optionFullWidth + dragAmount > CGFloat(options.count - 1) * optionFullWidth) {
+                        dragOffset = CGFloat(options.count - 1 - selectedOption) * optionFullWidth
+                    } else {
+                        dragOffset = dragAmount
+                    }
+                }
+                .onEnded { value in
+                    let dragAmount = value.translation.width
+                    let optionFullWidth = optionWidth + optionSpacing
+                    
+                    // 计算拖动后应该选择哪个选项
+                    if abs(dragAmount) > optionFullWidth / 2 {
+                        if dragAmount > 0 && selectedOption < options.count - 1 {
+                            selectedOption += 1
+                        } else if dragAmount < 0 && selectedOption > 0 {
+                            selectedOption -= 1
+                        }
+                    }
+                    
+                    dragOffset = 0
+                }
         )
     }
 }

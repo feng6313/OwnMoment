@@ -2,7 +2,7 @@ import SwiftUI
 import CoreLocation
 
 struct SettingsView: View {
-    @Environment(".presentationMode") var presentationMode
+    @Environment(\.presentationMode) var presentationMode
     @Binding var customDate: Date
     @Binding var customLocation: String
     
@@ -51,7 +51,7 @@ struct SettingsView: View {
 }
 
 struct LocationPickerView: View {
-    @Environment(".presentationMode") var presentationMode
+    @Environment(\.presentationMode) var presentationMode
     @Binding var selectedLocation: String
     @StateObject private var locationManager = LocationManager()
     
