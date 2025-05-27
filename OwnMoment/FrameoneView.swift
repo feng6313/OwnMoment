@@ -94,7 +94,7 @@ struct FrameoneView: View {
                                     .clipped() // 隐藏超出显示区域的部分
                                 
                                 // 添加日期显示
-                                Text("2023-02-03")
+                                Text(getImageDate(image) ?? "未知日期")
                                     .font(.custom("Rajdhani", size: 20))
                                     .fontWeight(.semibold)
                                     .foregroundColor(Color(hex: "#F56E00"))
@@ -302,6 +302,59 @@ extension FrameoneView {
         // return locationString
         
         // 由于我们没有实际的PHAsset引用，这里返回nil
+        return nil
+    }
+    
+    // 获取图片拍摄日期
+    private func getImageDate(_ image: UIImage) -> String? {
+        guard let imageData = image.jpegData(compressionQuality: 1.0) else {
+            print("无法获取图片数据")
+            return nil
+        }
+        
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil) else {
+            print("无法创建图片源")
+            return nil
+        }
+        
+        guard let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else {
+            print("无法获取图片元数据")
+            return nil
+        }
+        
+        // 尝试获取EXIF字典
+        if let exifDict = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any] {
+            // 首先尝试获取数字化时间
+            if let dateString = exifDict[kCGImagePropertyExifDateTimeDigitized as String] as? String {
+                return formatExifDate(dateString)
+            }
+            
+            // 如果没有数字化时间，尝试获取原始时间
+            if let dateString = exifDict[kCGImagePropertyExifDateTimeOriginal as String] as? String {
+                return formatExifDate(dateString)
+            }
+        }
+        
+        // 如果EXIF中没有找到，尝试获取TIFF字典中的时间
+        if let tiffDict = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any],
+           let dateString = tiffDict[kCGImagePropertyTIFFDateTime as String] as? String {
+            return formatExifDate(dateString)
+        }
+        
+        return nil
+    }
+    
+    // 格式化EXIF日期字符串
+    private func formatExifDate(_ dateString: String) -> String? {
+        // EXIF日期格式通常为："yyyy:MM:dd HH:mm:ss"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        
+        if let date = formatter.date(from: dateString) {
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.string(from: date)
+        }
+        
         return nil
     }
     
