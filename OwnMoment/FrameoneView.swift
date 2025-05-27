@@ -265,7 +265,7 @@ struct SlideSelector: View {
     private let options = ["边框", "文字", "时间", "地点", "图标"]
     private let selectorWidth: CGFloat = 330
     private let selectorHeight: CGFloat = 34
-    private let optionWidth: CGFloat = 66
+    private let optionWidth: CGFloat = 65
     private let optionSpacing: CGFloat = 0
     
     var body: some View {
@@ -343,9 +343,14 @@ struct ColorSelector: View {
         ["#E5ECDB", "#C3D3DB", "#C3D3DB", "#69733E", "#834643", "#255B85"]
     ]
     
-    // 选中的颜色索引，默认选择第一个颜色(#FFFFFF)
-    @State private var selectedRow = 0
-    @State private var selectedColumn = 0
+    // 为每个选项保存选中的颜色索引
+    @State private var selectedIndices: [(row: Int, column: Int)] = [
+        (0, 0), // 边框 - 默认白色
+        (0, 1), // 文字 - 默认黑色
+        (0, 4), // 时间 - 默认橙色
+        (0, 1), // 地点 - 默认黑色
+        (0, 1)  // 图标 - 默认黑色
+    ]
     
     // 颜色块大小和间距
     private let colorSize: CGFloat = 26
@@ -369,6 +374,34 @@ struct ColorSelector: View {
         self._dateTextColor = dateTextColor
         self._locationTextColor = locationTextColor
         self._iconColor = iconColor
+        
+        // 初始化selectedIndices，根据传入的颜色值设置初始选中状态
+        // 注意：这里我们只能设置默认值，实际的颜色匹配需要在onAppear中完成
+    }
+    
+    // 查找颜色在colors数组中的索引
+    private func findColorIndex(for targetColor: Color) -> (row: Int, column: Int) {
+        // 遍历颜色数组查找最接近的颜色
+        for row in 0..<colors.count {
+            for column in 0..<colors[row].count {
+                let colorHex = colors[row][column]
+                if Color(hex: colorHex) == targetColor {
+                    return (row, column)
+                }
+            }
+        }
+        // 如果没找到完全匹配的，返回默认值
+        return (0, 0)
+    }
+    
+    // 更新所有选项的选中颜色索引
+    private func updateSelectedIndices() {
+        // 更新每个选项的选中颜色索引
+        selectedIndices[0] = findColorIndex(for: frameColor)
+        selectedIndices[1] = findColorIndex(for: titleTextColor)
+        selectedIndices[2] = findColorIndex(for: dateTextColor)
+        selectedIndices[3] = findColorIndex(for: locationTextColor)
+        selectedIndices[4] = findColorIndex(for: iconColor)
     }
     
     var body: some View {
@@ -388,11 +421,21 @@ struct ColorSelector: View {
             }
         }
         .frame(width: containerWidth)
+        .onAppear {
+            // 在视图出现时，根据当前颜色值更新selectedIndices
+            updateSelectedIndices()
+        }
+        .onChange(of: selectedOption) { _ in
+            // 当选项改变时，确保UI反映正确的选中状态
+            // 这里不需要额外操作，因为我们在colorCircle中已经处理了
+        }
     }
     
     // 创建单个颜色圆圈
     private func colorCircle(row: Int, column: Int) -> some View {
-        let isSelected = (selectedRow == row && selectedColumn == column)
+        // 检查当前选项的选中状态
+        let currentSelection = selectedIndices[selectedOption]
+        let isSelected = (currentSelection.row == row && currentSelection.column == column)
         let colorHex = colors[row][column]
         let color = Color(hex: colorHex)
         
@@ -411,8 +454,8 @@ struct ColorSelector: View {
         }
         .frame(maxWidth: .infinity) // 均分容器宽度
         .onTapGesture {
-            selectedRow = row
-            selectedColumn = column
+            // 更新当前选项的选中颜色索引
+            selectedIndices[selectedOption] = (row, column)
             
             // 根据当前选择的选项更新对应的颜色
             switch selectedOption {
