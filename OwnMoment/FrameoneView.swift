@@ -147,7 +147,7 @@ struct FrameoneView: View {
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
                         SlideSelector(selectedOption: $selectedSlideOption)
-                            .offset(y: 455/2 + 24 + 20) // 原来是455/2 + 24，现在增加20点
+                            .offset(y: 455/2 + 28) // 原来是455/2 + 24，现在增加20点
                     }
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
@@ -557,6 +557,7 @@ struct ColorSelector: View {
                     colorCircle(row: 0, column: column)
                 }
             }
+            .offset(y: -10) // 向上移动10点
             
             // 第二行颜色
             HStack {
@@ -564,6 +565,7 @@ struct ColorSelector: View {
                     colorCircle(row: 1, column: column)
                 }
             }
+            .offset(y: -10) // 向上移动10点
         }
         .frame(width: containerWidth)
         .onAppear {
