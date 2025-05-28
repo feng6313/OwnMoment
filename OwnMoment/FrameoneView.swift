@@ -84,9 +84,7 @@ struct FrameoneView: View {
                                                 .onChanged { value in
                                                     // 限制缩放范围在1.0到5.0之间
                                                     let newScale = min(max(previousScale * value, 1.0), 5.0)
-                                                    withAnimation(.interactiveSpring()) {
-                                                        currentScale = newScale
-                                                    }
+                                                    currentScale = newScale
                                                 }
                                                 .onEnded { value in
                                                     // 保存当前缩放值作为下次手势的基准
@@ -100,9 +98,7 @@ struct FrameoneView: View {
                                                         width: previousPosition.width + value.translation.width,
                                                         height: previousPosition.height + value.translation.height
                                                     )
-                                                    withAnimation(.interactiveSpring()) {
-                                                        currentPosition = newPosition
-                                                    }
+                                                    currentPosition = newPosition
                                                 }
                                                 .onEnded { value in
                                                     // 保存当前位置作为下次手势的基准
@@ -110,8 +106,6 @@ struct FrameoneView: View {
                                                 }
                                         )
                                     )
-                                    .animation(.interactiveSpring(), value: currentScale)
-                                    .animation(.interactiveSpring(), value: currentPosition)
                                     .clipped() // 隐藏超出显示区域的部分
                                 
                                 // 添加日期显示
@@ -153,7 +147,7 @@ struct FrameoneView: View {
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
                         SlideSelector(selectedOption: $selectedSlideOption)
-                            .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
+                            .offset(y: 455/2 + 24 + 20) // 原来是455/2 + 24，现在增加20点
                     }
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
@@ -174,7 +168,6 @@ struct FrameoneView: View {
                                         RoundedRectangle(cornerRadius: 8)
                                             .strokeBorder(selectedColorOption == 0 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
                                     )
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedColorOption)
                                 
                                 // 图标和文字
                                 VStack(spacing: 5) {
@@ -207,7 +200,6 @@ struct FrameoneView: View {
                                         RoundedRectangle(cornerRadius: 8)
                                             .strokeBorder(selectedColorOption == 1 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
                                     )
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedColorOption)
                                 
                                 // 图标和文字
                                 VStack(spacing: 5) {
@@ -240,7 +232,6 @@ struct FrameoneView: View {
                                         RoundedRectangle(cornerRadius: 8)
                                             .strokeBorder(selectedColorOption == 2 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
                                     )
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedColorOption)
                                 
                                 // 图标和文字
                                 VStack(spacing: 5) {
@@ -271,7 +262,7 @@ struct FrameoneView: View {
                             locationTextColor: $locationTextColor,
                             iconColor: $iconColor
                         )
-                        .offset(y: 455/2 + 24 + 80) // 图标选项栏下方10点的位置
+                        .offset(y: 455/2 + 24 + 80 + 20) // 原来是455/2 + 24 + 80，现在增加20点
                     }
                 }
                 
@@ -434,8 +425,8 @@ struct SlideSelector: View {
                 .fill(Color(hex: "#6B6C70"))
                 .frame(width: optionWidth, height: selectorHeight - 4)
                 .offset(x: 2 + CGFloat(selectedOption) * (optionWidth + optionSpacing) + dragOffset, y: 0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedOption)
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: dragOffset)
+                .animation(.spring(), value: selectedOption)
+                .animation(.spring(), value: dragOffset)
             
             // 选项文本
             HStack(spacing: optionSpacing) {
@@ -447,10 +438,8 @@ struct SlideSelector: View {
                         .frame(width: optionWidth, height: selectorHeight)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                selectedOption = index
-                                dragOffset = 0
-                            }
+                            selectedOption = index
+                            dragOffset = 0
                         }
                 }
             }
@@ -479,19 +468,13 @@ struct SlideSelector: View {
                     // 计算拖动后应该选择哪个选项
                     if abs(dragAmount) > optionFullWidth / 2 {
                         if dragAmount > 0 && selectedOption < options.count - 1 {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                selectedOption += 1
-                            }
+                            selectedOption += 1
                         } else if dragAmount < 0 && selectedOption > 0 {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                selectedOption -= 1
-                            }
+                            selectedOption -= 1
                         }
                     }
                     
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        dragOffset = 0
-                    }
+                    dragOffset = 0
                 }
         )
     }
@@ -607,11 +590,11 @@ struct ColorSelector: View {
                 .fill(color)
                 .frame(width: colorSize, height: colorSize)
             
-            // 选中状态 - 3点白色内描边，只有选中时才显示
+            // 选中状态 - 3点内描边，只有选中时才显示
             if isSelected {
                 Circle()
-                    .stroke(Color.white, lineWidth: 3)
-                    .frame(width: colorSize - 6, height: colorSize - 6)
+                    .stroke(Color.blue, lineWidth: 3) // 将白色改为蓝色
+                    .frame(width: colorSize, height: colorSize) // 不留边缘，直接使用colorSize而不是减去6
             }
         }
         .frame(maxWidth: .infinity) // 均分容器宽度
@@ -800,17 +783,11 @@ extension FrameoneView {
             return nil
         }
         
-        // 打印所有元数据，帮助调试
-        print("图片元数据: \(metadata)")
-        
         // 检查是否存在GPS字典
         guard let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] else {
             print("图片中不包含GPS信息")
             return nil
         }
-        
-        // 打印GPS数据，帮助调试
-        print("GPS数据: \(gpsDict)")
         
         // 提取经纬度信息 - 处理不同格式的GPS数据
         var finalLatitude: Double = 0
@@ -824,7 +801,6 @@ extension FrameoneView {
             
             finalLatitude = latitudeRef == "N" ? latitude : -latitude
             finalLongitude = longitudeRef == "E" ? longitude : -longitude
-            print("解析到标准格式GPS数据: 纬度\(finalLatitude), 经度\(finalLongitude)")
         }
         // 处理某些设备可能使用的数组格式GPS数据
         else if let latitudeArray = gpsDict[kCGImagePropertyGPSLatitude as String] as? [Double],
@@ -846,7 +822,6 @@ extension FrameoneView {
             
             finalLatitude = latitudeRef == "N" ? rawLatitude : -rawLatitude
             finalLongitude = longitudeRef == "E" ? rawLongitude : -rawLongitude
-            print("解析到数组格式GPS数据: 纬度\(finalLatitude), 经度\(finalLongitude)")
         } else {
             print("无法解析GPS数据格式")
             return nil
@@ -879,8 +854,6 @@ extension FrameoneView {
                 return
             }
             
-            print("获取到地标信息: \(placemark)")
-            
             // 构建地理位置字符串 - 优先使用城市和区域信息
             if let locality = placemark.locality, let subLocality = placemark.subLocality {
                 // 城市和区，例如：北京·朝阳区
@@ -903,20 +876,10 @@ extension FrameoneView {
                 let lonString = String(format: "%.4f", finalLongitude)
                 locationString = "\(latString),\(lonString)"
             }
-            
-            print("生成的地理位置字符串: \(locationString ?? "nil")")
         }
         
         // 等待反地理编码完成，最多等待5秒
-        let waitResult = semaphore.wait(timeout: .now() + 5)
-        
-        if waitResult == .timedOut {
-            print("反地理编码超时")
-            // 超时时返回经纬度作为备选
-            let latString = String(format: "%.4f", finalLatitude)
-            let lonString = String(format: "%.4f", finalLongitude)
-            return "\(latString),\(lonString)"
-        }
+        _ = semaphore.wait(timeout: .now() + 5)
         
         return locationString
     }
