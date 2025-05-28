@@ -147,7 +147,7 @@ struct FrameoneView: View {
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
                         SlideSelector(selectedOption: $selectedSlideOption)
-                            .offset(y: 455/2 + 28) // 原来是455/2 + 24，现在增加20点
+                            .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
                     }
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
@@ -262,7 +262,7 @@ struct FrameoneView: View {
                             locationTextColor: $locationTextColor,
                             iconColor: $iconColor
                         )
-                        .offset(y: 455/2 + 24 + 80 + 20) // 原来是455/2 + 24 + 80，现在增加20点
+                        .offset(y: 455/2 + 24 + 80) // 图标选项栏下方10点的位置
                     }
                 }
                 
@@ -557,7 +557,6 @@ struct ColorSelector: View {
                     colorCircle(row: 0, column: column)
                 }
             }
-            .offset(y: -10) // 向上移动10点
             
             // 第二行颜色
             HStack {
@@ -565,7 +564,6 @@ struct ColorSelector: View {
                     colorCircle(row: 1, column: column)
                 }
             }
-            .offset(y: -10) // 向上移动10点
         }
         .frame(width: containerWidth)
         .onAppear {
@@ -592,11 +590,12 @@ struct ColorSelector: View {
                 .fill(color)
                 .frame(width: colorSize, height: colorSize)
             
-            // 选中状态 - 3点内描边，只有选中时才显示
+            // 选中状态 - 3点白色内描边，只有选中时才显示
             if isSelected {
                 Circle()
-                    .stroke(Color.blue, lineWidth: 3) // 将白色改为蓝色
-                    .frame(width: colorSize, height: colorSize) // 不留边缘，直接使用colorSize而不是减去6
+                    .inset(by: 1.5) // 向内缩进1.5点，确保是内描边
+                    .stroke(Color.white, lineWidth: 3)
+                    .frame(width: colorSize, height: colorSize)
             }
         }
         .frame(maxWidth: .infinity) // 均分容器宽度
