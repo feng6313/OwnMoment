@@ -32,7 +32,8 @@ struct FrameoneView: View {
     @State private var dateTextColor: Color = Color(hex: "#F56E00") // 时间颜色
     @State private var locationTextColor: Color = Color(hex: "#1C1E22") // 地点文字颜色
     @State private var iconColor: Color = Color(hex: "#1C1E22") // 图标颜色
-    @State private var selectedColorOption = 0 // 当前选中的颜色选项
+    @State private var selectedColorOption = 0 // 当前选中的颜色选项（下方矩形框）
+    @State private var selectedSlideOption = 0 // 当前选中的滑动选项（上方滑动按钮）
     @State private var showColorControls: Bool = true // 控制圆形色块和滑动按钮的显示
     
     // 蓝色显示区域的尺寸常量
@@ -145,7 +146,7 @@ struct FrameoneView: View {
                     
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
-                        SlideSelector(selectedOption: $selectedColorOption)
+                        SlideSelector(selectedOption: $selectedSlideOption)
                             .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
                     }
                     
@@ -254,7 +255,7 @@ struct FrameoneView: View {
                     // 添加颜色选择器，放在图标选项栏下方
                     if showColorControls {
                         ColorSelector(
-                            selectedOption: $selectedColorOption,
+                            selectedOption: $selectedSlideOption, // 使用滑动选项的索引
                             frameColor: $frameColor,
                             titleTextColor: $titleTextColor,
                             dateTextColor: $dateTextColor,
