@@ -147,12 +147,12 @@ struct FrameoneView: View {
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
                         SlideSelector(selectedOption: $selectedSlideOption)
-                            .offset(y: 455/2 + 24) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
+                            .offset(y: 455/2 + 32) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
                     }
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
                     HStack(spacing: 0) {
-                        Spacer(minLength: 24) // 左侧距离屏幕24点
+                        Spacer(minLength: 12) // 左侧距离屏幕24点
                         
                         // 颜色选项
                         Button(action: {
@@ -248,7 +248,7 @@ struct FrameoneView: View {
                         }
                         .disabled(selectedColorOption == 2) // 当已选中时禁用点击反馈
                         
-                        Spacer(minLength: 24) // 右侧距离屏幕24点
+                        Spacer(minLength: 12) // 右侧距离屏幕24点
                     }
                     .offset(y: 455/2 + 24 + 180) // 滑动选择按钮下方44点的位置
                     
@@ -485,7 +485,7 @@ struct ColorSelector: View {
     // 颜色数组，按照用户提供的顺序
     private let colors: [[String]] = [
         ["#FFFFFF", "#1C1E22", "#F4E6E7", "#F2EEE3", "#F56E00", "#CEC3B3"],
-        ["#E5ECDB", "#C3D3DB", "#C3D3DB", "#69733E", "#834643", "#255B85"]
+        ["#E5ECDB", "#C3D3DB", "#A98069", "#69733E", "#834643", "#255B85"]
     ]
     
     // 为每个选项保存选中的颜色索引
@@ -590,11 +590,11 @@ struct ColorSelector: View {
                 .fill(color)
                 .frame(width: colorSize, height: colorSize)
             
-            // 选中状态 - 3点白色内描边，只有选中时才显示
+            // 选中状态 - 4点白色内描边，只有选中时才显示
             if isSelected {
                 Circle()
-                    .inset(by: 1.5) // 向内缩进1.5点，确保是内描边
-                    .stroke(Color.white, lineWidth: 3)
+                    .inset(by: 2) // 向内缩进2点，确保是内描边
+                    .stroke(Color.white, lineWidth: 4)
                     .frame(width: colorSize, height: colorSize)
             }
         }
