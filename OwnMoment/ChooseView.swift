@@ -30,7 +30,7 @@ struct ChooseView: View {
         NavigationStack {
             ZStack {
                 // 设置背景色
-                Color(hex: "#0C0F14")
+                Color("#0C0F14")
                     .ignoresSafeArea()
 
                 // 垂直排列的三个图标
@@ -114,7 +114,7 @@ struct ChooseView: View {
             .navigationBarTitleDisplayMode(.inline)
             // 设置导航栏标题颜色为白色
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbarBackground(Color(hex: "#0C0F14"), for: .navigationBar)
+            .toolbarBackground(Color("#0C0F14"), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(isPresented: $navigateToFrameOneView) {
                 FrameoneView(selectedImage: finalSelectedImage, frameIndex: finalSelectedFrameIndex)

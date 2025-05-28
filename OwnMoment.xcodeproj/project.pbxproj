@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B262711E2DE73347004903DB /* PixelMplus12-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B262711D2DE73347004903DB /* PixelMplus12-Regular.ttf */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B2957C582DD481BA00D4EB08 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		B262711D2DE73347004903DB /* PixelMplus12-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PixelMplus12-Regular.ttf"; sourceTree = "<group>"; };
 		B2957C472DD481B800D4EB08 /* OwnMoment.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OwnMoment.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2957C572DD481BA00D4EB08 /* OwnMomentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwnMomentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2957C612DD481BA00D4EB08 /* OwnMomentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwnMomentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +80,7 @@
 		B2957C3E2DD481B800D4EB08 = {
 			isa = PBXGroup;
 			children = (
+				B262711D2DE73347004903DB /* PixelMplus12-Regular.ttf */,
 				B2957C492DD481B800D4EB08 /* OwnMoment */,
 				B2957C5A2DD481BA00D4EB08 /* OwnMomentTests */,
 				B2957C642DD481BA00D4EB08 /* OwnMomentUITests */,
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B262711E2DE73347004903DB /* PixelMplus12-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

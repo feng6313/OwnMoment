@@ -2,13 +2,30 @@
 //  FrameoneView.swift
 //  OwnMoment
 //
-//  Created by feng on 2025/5/15. // 请修改为实际创建日期
+//  Created by feng on 2025/5/15.
 //
 
 import SwiftUI
 import Photos
 import CoreLocation
+import MapKit
+import UIKit
 import ImageIO
+#if canImport(AppKit)
+import AppKit
+#endif
+
+// 定义ImageIO框架中的常量
+let kCGImagePropertyExifDictionary = "{Exif}" as CFString
+let kCGImagePropertyTIFFDictionary = "{TIFF}" as CFString
+let kCGImagePropertyGPSDictionary = "{GPS}" as CFString
+let kCGImagePropertyIPTCDictionary = "{IPTC}" as CFString
+let kCGImagePropertyExifDateTimeOriginal = "DateTimeOriginal" as CFString
+let kCGImagePropertyExifDateTimeDigitized = "DateTimeDigitized" as CFString
+let kCGImagePropertyTIFFDateTime = "DateTime" as CFString
+let kCGImagePropertyIPTCCreationDate = "CreationDate" as CFString
+let kCGImagePropertyGPSDateStamp = "DateStamp" as CFString
+
 
 struct FrameoneView: View {
     @Environment(\.presentationMode) var presentationMode
@@ -26,23 +43,36 @@ struct FrameoneView: View {
     @State private var customDate = Date()
     @State private var customLocation = ""
     
+    // 添加保存相关的状态变量
+    @State private var showSaveAlert = false
+    @State private var saveAlertTitle = ""
+    @State private var saveAlertMessage = ""
+    
     // 添加颜色相关的状态变量
     @State private var frameColor: Color = .white // 边框颜色
-    @State private var titleTextColor: Color = Color(hex: "#1C1E22") // 标题文字颜色
-    @State private var dateTextColor: Color = Color(hex: "#F56E00") // 时间颜色
-    @State private var locationTextColor: Color = Color(hex: "#1C1E22") // 地点文字颜色
-    @State private var iconColor: Color = Color(hex: "#1C1E22") // 图标颜色
+    @State private var titleTextColor: Color = Color("#1C1E22") // 标题文字颜色
+@State private var dateTextColor: Color = Color("#F56E00") // 时间颜色
+@State private var locationTextColor: Color = Color("#1C1E22") // 地点文字颜色
+@State private var iconColor: Color = Color("#1C1E22") // 图标颜色
     @State private var selectedColorOption = 0 // 当前选中的颜色选项（下方矩形框）
     @State private var selectedSlideOption = 0 // 当前选中的滑动选项（上方滑动按钮）
     @State private var showColorControls: Bool = true // 控制圆形色块和滑动按钮的显示
     
-    // 蓝色显示区域的尺寸常量
-    private let displayAreaSize: CGFloat = 339
+    // 添加动态尺寸变量
+    @State private var frameWidth: CGFloat = 371
+    @State private var frameHeight: CGFloat = 455
+    @State private var displayWidth: CGFloat = 339
+    @State private var displayHeight: CGFloat = 339
+    
+    // 蓝色显示区域的尺寸常量 - 将其改为计算属性
+    private var displayAreaSize: CGFloat {
+        return displayWidth // 正方形区域，宽高相等
+    }
 
     var body: some View {
         ZStack {
             // 设置背景色与ChooseView一致
-            Color(hex: "#0C0F14")
+            Color("#0C0F14")
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -61,10 +91,6 @@ struct FrameoneView: View {
                         
                         // 显示选择的图片
                         if let image = selectedImage {
-                            // 获取图片的宽高比 - 注释掉未使用的变量
-                            // let imageWidth = image.size.width
-                            // let imageHeight = image.size.height
-                            // let isWiderThanTall = imageWidth > imageHeight
                             
                             ZStack(alignment: .bottomTrailing) {
                                 Image(uiImage: image)
@@ -75,6 +101,9 @@ struct FrameoneView: View {
                                     .scaleEffect(currentScale)
                                     // 应用位置偏移，但限制在显示区域内
                                     .offset(limitOffsetToDisplayArea(currentPosition, scale: currentScale))
+                                    // 添加动画效果，使缩放和移动更加流畅
+                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentScale)
+                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentPosition)
                                     // 添加手势识别
                                     .gesture(
                                         // 组合缩放和拖动手势
@@ -89,6 +118,14 @@ struct FrameoneView: View {
                                                 .onEnded { value in
                                                     // 保存当前缩放值作为下次手势的基准
                                                     previousScale = currentScale
+                                                    
+                                                    // 如果缩放小于1.1，平滑地恢复到1.0
+                                                    if currentScale < 1.1 {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            currentScale = 1.0
+                                                            previousScale = 1.0
+                                                        }
+                                                    }
                                                 },
                                             // 拖动手势
                                             DragGesture()
@@ -103,6 +140,15 @@ struct FrameoneView: View {
                                                 .onEnded { value in
                                                     // 保存当前位置作为下次手势的基准
                                                     previousPosition = currentPosition
+                                                    
+                                                    // 检查并修正边界，添加回弹效果
+                                                    let correctedPosition = limitOffsetToDisplayArea(currentPosition, scale: currentScale)
+                                                    if correctedPosition != currentPosition {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            currentPosition = correctedPosition
+                                                            previousPosition = correctedPosition
+                                                        }
+                                                    }
                                                 }
                                         )
                                     )
@@ -110,7 +156,7 @@ struct FrameoneView: View {
                                 
                                 // 添加日期显示
                                 Text(getImageDate(image) ?? "未知日期")
-                                    .font(.custom("Rajdhani", size: 18))
+                                    .font(.custom("PixelMplus12-Regular", size: 18))
                                     .fontWeight(.semibold)
                                     .foregroundColor(dateTextColor)
                                     .padding([.bottom, .trailing], 10)
@@ -162,11 +208,11 @@ struct FrameoneView: View {
                             ZStack {
                                 // 圆角矩形框
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(hex: "#1C1E22"))
+                                    .fill(Color("#1C1E22"))
                                     .frame(width: 107, height: 70)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(selectedColorOption == 0 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
+                                            .strokeBorder(selectedColorOption == 0 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
                                     )
                                 
                                 // 图标和文字
@@ -194,11 +240,11 @@ struct FrameoneView: View {
                             ZStack {
                                 // 圆角矩形框
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(hex: "#1C1E22"))
+                                    .fill(Color("#1C1E22"))
                                     .frame(width: 107, height: 70)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(selectedColorOption == 1 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
+                                            .strokeBorder(selectedColorOption == 1 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
                                     )
                                 
                                 // 图标和文字
@@ -226,11 +272,11 @@ struct FrameoneView: View {
                             ZStack {
                                 // 圆角矩形框
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(hex: "#1C1E22"))
+                                    .fill(Color("#1C1E22"))
                                     .frame(width: 107, height: 70)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(selectedColorOption == 2 ? Color.white : Color(hex: "#3E3E3E"), lineWidth: 2)
+                                            .strokeBorder(selectedColorOption == 2 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
                                     )
                                 
                                 // 图标和文字
@@ -268,14 +314,13 @@ struct FrameoneView: View {
                 
                 Spacer() // 填充剩余空间
             }
-            .padding(.top) // 确保与导航栏有适当间距
         }
         .navigationBarBackButtonHidden(true) // 隐藏默认返回按钮
         .navigationBarTitleDisplayMode(.inline) // 确保标题居中
         .toolbarColorScheme(.dark, for: .navigationBar) // 保持导航栏颜色风格一致
-        .toolbarBackground(Color(hex: "#0C0F14"), for: .navigationBar)
+        .toolbarBackground(Color("#0C0F14"), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
+        .toolbar(content: {
             // 左侧返回按钮
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
@@ -285,12 +330,14 @@ struct FrameoneView: View {
                         .foregroundColor(.white)
                 }
             }
+            
             // 中间标题
             ToolbarItem(placement: .principal) {
                 Text("编辑")
                     .foregroundColor(.white)
                     .font(.headline)
             }
+            
             // 右侧设置和保存按钮
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 10) {
@@ -303,26 +350,34 @@ struct FrameoneView: View {
                     
                     Button(action: {
                         // 保存按钮的操作
+                        saveImageToPhotoAlbum()
                     }) {
                         Text("保存")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 60, height: 30, alignment: .center)
-                            .background(Color(hex: "#007AFF"))
+                            .background(Color("#007AFF"))
                             .cornerRadius(15)
                     }
                 }
             }
-
-            // 关于“距离屏幕右边缘32点”：ToolbarItem的布局由系统管理，
-            // 它会自动处理与屏幕边缘的间距。
-            // 如果需要精确控制，可能需要更复杂的Toolbar布局。
-            // 此处按钮本身已按要求设置尺寸和颜色。
-        }
+        })
+        
+        // 关于"距离屏幕右边缘32点"：ToolbarItem的布局由系统管理，
+        // 它会自动处理与屏幕边缘的间距。
+        // 如果需要精确控制，可能需要更复杂的Toolbar布局。
+        // 此处按钮本身已按要求设置尺寸和颜色。
         .sheet(isPresented: $isSettingsPresented) {
             SettingsView(
                 customDate: $customDate,
                 customLocation: $customLocation
+            )
+        }
+        .alert(isPresented: $showSaveAlert) {
+            Alert(
+                title: Text(saveAlertTitle),
+                message: Text(saveAlertMessage),
+                dismissButton: .default(Text("确定"))
             )
         }
     }
@@ -417,12 +472,12 @@ struct SlideSelector: View {
         ZStack(alignment: .leading) {
             // 黑色背景矩形
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(hex: "#2C2C2E"))
+                .fill(Color("#2C2C2E"))
                 .frame(width: selectorWidth, height: selectorHeight)
             
             // 灰色选择器
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(hex: "#6B6C70"))
+                .fill(Color("#6B6C70"))
                 .frame(width: optionWidth, height: selectorHeight - 4)
                 .offset(x: 2 + CGFloat(selectedOption) * (optionWidth + optionSpacing) + dragOffset, y: 0)
                 .animation(.spring(), value: selectedOption)
@@ -443,8 +498,8 @@ struct SlideSelector: View {
                         }
                 }
             }
-            .padding(.horizontal, 2)
         }
+        .padding(.horizontal, 2)
         .frame(width: selectorWidth, height: selectorHeight)
         .gesture(
             DragGesture()
@@ -519,9 +574,6 @@ struct ColorSelector: View {
         self._dateTextColor = dateTextColor
         self._locationTextColor = locationTextColor
         self._iconColor = iconColor
-        
-        // 初始化selectedIndices，根据传入的颜色值设置初始选中状态
-        // 注意：这里我们只能设置默认值，实际的颜色匹配需要在onAppear中完成
     }
     
     // 查找颜色在colors数组中的索引
@@ -530,7 +582,7 @@ struct ColorSelector: View {
         for row in 0..<colors.count {
             for column in 0..<colors[row].count {
                 let colorHex = colors[row][column]
-                if Color(hex: colorHex) == targetColor {
+                if Color(colorHex) == targetColor {
                     return (row, column)
                 }
             }
@@ -572,7 +624,6 @@ struct ColorSelector: View {
         }
         .onChange(of: selectedOption) { oldValue, newValue in
             // 当选项改变时，确保UI反映正确的选中状态
-            // 这里不需要额外操作，因为我们在colorCircle中已经处理了
         }
     }
     
@@ -582,19 +633,19 @@ struct ColorSelector: View {
         let currentSelection = selectedIndices[selectedOption]
         let isSelected = (currentSelection.row == row && currentSelection.column == column)
         let colorHex = colors[row][column]
-        let color = Color(hex: colorHex)
+        let color = Color(colorHex)
         
         return ZStack {
-            // 颜色圆圈
+            // 颜色圆圈 - 移除默认边框
             Circle()
                 .fill(color)
                 .frame(width: colorSize, height: colorSize)
             
-            // 选中状态 - 4点白色内描边，只有选中时才显示
+            // 选中状态 - 3点白色内描边，只有选中时才显示
             if isSelected {
                 Circle()
-                    .inset(by: 2) // 向内缩进2点，确保是内描边
-                    .stroke(Color.white, lineWidth: 4)
+                    .inset(by: 1.5) // 向内缩进1.5点，确保是内描边
+                    .stroke(Color.white, lineWidth: 3)
                     .frame(width: colorSize, height: colorSize)
             }
         }
@@ -603,18 +654,19 @@ struct ColorSelector: View {
             // 更新当前选项的选中颜色索引
             selectedIndices[selectedOption] = (row, column)
             
-            // 根据当前选择的选项更新对应的颜色
+            // 根据当前SlideSelector的选择更新对应的颜色
+            let newColor = color
             switch selectedOption {
             case 0: // 边框
-                frameColor = color
+                frameColor = newColor
             case 1: // 文字
-                titleTextColor = color
+                titleTextColor = newColor
             case 2: // 时间
-                dateTextColor = color
+                dateTextColor = newColor
             case 3: // 地点
-                locationTextColor = color
+                locationTextColor = newColor
             case 4: // 图标
-                iconColor = color
+                iconColor = newColor
             default:
                 break
             }
@@ -623,6 +675,346 @@ struct ColorSelector: View {
 }
 
 extension FrameoneView {
+    // 保存图片到相册
+    func saveImageToPhotoAlbum() {
+        #if canImport(UIKit)
+        // 检查相册访问权限
+        let status = PHPhotoLibrary.authorizationStatus()
+        
+        switch status {
+        case .authorized, .limited:
+            // 已授权，继续保存图片
+            proceedWithSavingImage()
+        case .notDetermined:
+            // 请求授权
+            PHPhotoLibrary.requestAuthorization { [self] newStatus in
+                DispatchQueue.main.async {
+                    if newStatus == .authorized || newStatus == .limited {
+                        self.proceedWithSavingImage()
+                    } else {
+                        self.showPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            // 显示权限被拒绝的提示
+            self.showPermissionDeniedAlert()
+        @unknown default:
+            // 处理未来可能添加的新状态
+            self.showPermissionDeniedAlert()
+        }
+        #elseif canImport(AppKit)
+        // 在macOS上实现保存功能
+        proceedWithSavingImage()
+        #endif
+    }
+    
+    // 实际保存图片的方法
+    private func proceedWithSavingImage() {
+        #if canImport(UIKit)
+        if #available(iOS 16.0, *) {
+            // 创建一个与白色背景大小相同的上下文
+            let renderer = ImageRenderer(content: 
+                ZStack {
+                    // 背景，使用动态尺寸
+                    Rectangle()
+                        .fill(frameColor)
+                        .frame(width: frameWidth, height: frameHeight)
+                    
+                    // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
+                    ZStack {
+                        if let image = selectedImage {
+                            ZStack(alignment: .bottomTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill() // 使用fill而不是fit，确保完全填充
+                                    .frame(width: displayWidth, height: displayHeight)
+                                    // 应用缩放效果
+                                    .scaleEffect(currentScale)
+                                    // 应用位置偏移，但限制在显示区域内
+                                    .offset(limitOffsetToDisplayArea(currentPosition, scale: currentScale))
+                                    // 添加动画效果，使缩放和移动更加流畅
+                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentScale)
+                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentPosition)
+                                    // 添加手势识别
+                                    .gesture(
+                                        // 组合缩放和拖动手势
+                                        SimultaneousGesture(
+                                            // 缩放手势
+                                            MagnificationGesture()
+                                                .onChanged { value in
+                                                    // 限制缩放范围在1.0到5.0之间
+                                                    let newScale = min(max(previousScale * value, 1.0), 5.0)
+                                                    currentScale = newScale
+                                                }
+                                                .onEnded { value in
+                                                    // 保存当前缩放值作为下次手势的基准
+                                                    previousScale = currentScale
+                                                    
+                                                    // 如果缩放小于1.1，平滑地恢复到1.0
+                                                    if currentScale < 1.1 {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            currentScale = 1.0
+                                                            previousScale = 1.0
+                                                        }
+                                                    }
+                                                },
+                                            // 拖动手势
+                                            DragGesture()
+                                                .onChanged { value in
+                                                    // 计算新的位置
+                                                    let newPosition = CGSize(
+                                                        width: previousPosition.width + value.translation.width,
+                                                        height: previousPosition.height + value.translation.height
+                                                    )
+                                                    currentPosition = newPosition
+                                                }
+                                                .onEnded { value in
+                                                    // 保存当前位置作为下次手势的基准
+                                                    previousPosition = currentPosition
+                                                    
+                                                    // 检查并修正边界，添加回弹效果
+                                                    let correctedPosition = limitOffsetToDisplayArea(currentPosition, scale: currentScale)
+                                                    if correctedPosition != currentPosition {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            currentPosition = correctedPosition
+                                                            previousPosition = correctedPosition
+                                                        }
+                                                    }
+                                                }
+                                        )
+                                    )
+                            }
+                        }
+                    }
+                    .frame(width: displayWidth, height: displayHeight)
+                    .offset(y: -42) // 向上移动42点
+                    
+                    // 添加图片下方的文字信息
+                    VStack(alignment: .leading, spacing: 2) { 
+                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(titleTextColor)
+                        
+                        HStack(spacing: 4) {
+                            Image("map_s")
+                                .renderingMode(.template)
+                                .resizable()
+                                .frame(width: 14, height: 14)
+                                .foregroundColor(iconColor)
+                            
+                            Text(getLocationText())
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(locationTextColor)
+                        }
+                    }
+                    .padding(.top, 350) // 向下移动350点，与设置界面保持一致
+                    .padding(.leading, 0) // 移除左边距
+                    .frame(width: displayWidth, alignment: .leading) // 与显示区宽度一致
+                }
+                .frame(width: frameWidth, height: frameHeight)
+            )
+            
+            // 配置渲染器 - 根据原始图片尺寸调整缩放因子
+            if let image = selectedImage {
+                // 计算适当的缩放因子，使输出图片尽可能接近原始尺寸
+                let originalWidth = image.size.width
+                let originalHeight = image.size.height
+                let scaleFactorWidth = originalWidth / frameWidth
+                let scaleFactorHeight = originalHeight / frameHeight
+                let scaleFactor = max(2.0, min(scaleFactorWidth, scaleFactorHeight, 4.0)) // 限制在2.0-4.0之间
+                
+                renderer.scale = scaleFactor
+            } else {
+                renderer.scale = 2.0 // 默认缩放因子
+            }
+            
+            // 获取渲染后的图片
+            if let uiImage = renderer.uiImage {
+                // 保存到相册
+                // 使用Photos框架保存图片
+                PHPhotoLibrary.shared().performChanges {
+                    PHAssetChangeRequest.creationRequestForAsset(from: uiImage)
+                } completionHandler: { [self] success, error in
+                    DispatchQueue.main.async {
+                        if success {
+                            self.saveAlertTitle = "保存成功"
+                            self.saveAlertMessage = "图片已成功保存到相册"
+                        } else if let error = error {
+                            self.saveAlertTitle = "保存失败"
+                            self.saveAlertMessage = error.localizedDescription
+                        }
+                        self.showSaveAlert = true
+                    }
+                }
+            } else {
+                saveAlertTitle = "保存失败"
+                saveAlertMessage = "无法生成图片"
+                showSaveAlert = true
+            }
+        } else {
+            // iOS 15兼容处理
+            saveAlertTitle = "功能不可用"
+            saveAlertMessage = "此功能需要iOS 16.0或更高版本"
+            showSaveAlert = true
+        }
+        #elseif canImport(AppKit)
+        // macOS实现
+        if #available(macOS 13.0, *) {
+            // 创建一个与白色背景大小相同的上下文
+            let renderer = ImageRenderer(content: 
+                ZStack {
+                    // 背景，使用动态尺寸
+                    Rectangle()
+                        .fill(frameColor)
+                        .frame(width: frameWidth, height: frameHeight)
+                    
+                    // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
+                    ZStack {
+                        if let image = selectedImage {
+                            ZStack(alignment: .bottomTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill() // 使用fill而不是fit，确保完全填充
+                                    .scaleEffect(currentScale)
+                                    // 应用缩放效果
+                                    .offset(currentPosition)
+                                    // 应用位置偏移，但限制在显示区域内
+                                    .gesture(
+                                        // 组合缩放和拖动手势
+                                        SimultaneousGesture(
+                                            // 缩放手势
+                                            MagnificationGesture()
+                                                .onChanged { value in
+                                                    // 限制缩放范围在1.0到5.0之间
+                                                    let newScale = min(max(lastScale * value, 1.0), 5.0)
+                                                    currentScale = newScale
+                                                }
+                                                .onEnded { _ in
+                                                    // 保存当前缩放值作为下次手势的基准
+                                                    lastScale = currentScale
+                                                },
+                                            // 拖动手势
+                                            DragGesture()
+                                                .onChanged { value in
+                                                    // 计算新的位置
+                                                    let newX = lastPosition.width + value.translation.width
+                                                    let newY = lastPosition.height + value.translation.height
+                                                    
+                                                    // 限制拖动范围，确保图片不会完全移出显示区域
+                                                    let (minX, maxX, minY, maxY) = calculateDragLimits()
+                                                    
+                                                    let constrainedX = min(max(newX, minX), maxX)
+                                                    let constrainedY = min(max(newY, minY), maxY)
+                                                    
+                                                    currentPosition = CGSize(width: constrainedX, height: constrainedY)
+                                                }
+                                                .onEnded { _ in
+                                                    // 保存当前位置作为下次手势的基准
+                                                    lastPosition = currentPosition
+                                                }
+                                        )
+                                    )
+                            }
+                        }
+                    }
+                    .frame(width: displayWidth, height: displayHeight)
+                    .offset(y: -42) // 向上移动42点
+                    
+                    // 添加图片下方的文字信息
+                    VStack(alignment: .leading, spacing: 2) { 
+                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(titleTextColor)
+                        
+                        HStack(spacing: 4) {
+                            Image("map_s")
+                                .renderingMode(.template)
+                                .resizable()
+                                .frame(width: 14, height: 14)
+                                .foregroundColor(iconColor)
+                            
+                            Text(getLocationText())
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(locationTextColor)
+                        }
+                    }
+                    .padding(.top, 350) // 向下移动350点，与设置界面保持一致
+                    .padding(.leading, 0) // 移除左边距
+                    .frame(width: displayWidth, alignment: .leading) // 与显示区宽度一致
+                }
+                .frame(width: frameWidth, height: frameHeight)
+            )
+            
+            // 配置渲染器 - 根据原始图片尺寸调整缩放因子
+            if let image = selectedImage {
+                // 计算适当的缩放因子，使输出图片尽可能接近原始尺寸
+                let originalWidth = image.size.width
+                let originalHeight = image.size.height
+                let scaleFactorWidth = originalWidth / frameWidth
+                let scaleFactorHeight = originalHeight / frameHeight
+                let scaleFactor = max(2.0, min(scaleFactorWidth, scaleFactorHeight, 4.0)) // 限制在2.0-4.0之间
+                
+                renderer.scale = scaleFactor
+            } else {
+                renderer.scale = 2.0 // 默认缩放因子
+            }
+            
+            // 获取渲染后的图片
+            if let nsImage = renderer.nsImage {
+                // 在macOS上实现保存功能
+                saveAlertTitle = "保存成功"
+                saveAlertMessage = "图片已成功保存"
+                showSaveAlert = true
+            } else {
+                saveAlertTitle = "保存失败"
+                saveAlertMessage = "无法生成图片"
+                showSaveAlert = true
+            }
+        } else {
+            // macOS 13以下版本兼容处理
+            saveAlertTitle = "功能不可用"
+            saveAlertMessage = "此功能需要macOS 13.0或更高版本"
+            showSaveAlert = true
+        }
+        #endif
+    }
+    
+    // 不再需要这个回调方法，因为我们使用了Photos框架的API
+    
+    // 显示权限被拒绝的提示
+    private func showPermissionDeniedAlert() {
+        self.saveAlertTitle = "无法访问相册"
+        self.saveAlertMessage = "请在设置中允许应用访问您的相册，以便保存图片。"
+        self.showSaveAlert = true
+    }
+}
+
+extension FrameoneView {
+    // 计算适当的尺寸
+    private func calculateSizes() {
+        guard let image = selectedImage else { return }
+        
+        // 获取原始图片尺寸
+        let imageWidth = image.size.width
+        let imageHeight = image.size.height
+        
+        // 获取屏幕尺寸
+        let screenWidth = UIScreen.main.bounds.width
+        let maxFrameWidth = min(screenWidth - 40, imageWidth) // 留出边距
+        
+        // 计算适当的显示区域尺寸（保持正方形）
+        let displaySize = min(maxFrameWidth - 32, min(imageWidth, imageHeight))
+        
+        // 设置显示区域尺寸
+        displayWidth = displaySize
+        displayHeight = displaySize
+        
+        // 设置边框尺寸
+        frameWidth = displaySize + 32 // 两侧各留16点边距
+        frameHeight = displaySize + 116 // 顶部和底部留出足够空间给文字
+    }
+    
     // 计算偏移量，允许图片在显示区域内移动
     func limitOffsetToDisplayArea(_ offset: CGSize, scale: CGFloat) -> CGSize {
         guard let image = selectedImage else { return .zero }
@@ -674,101 +1066,66 @@ extension FrameoneView {
     }
     
     // 获取照片地理位置信息
-    func getLocationText() -> String {
+    private func getLocationText() -> String {
         // 如果设置了自定义位置，优先使用自定义位置
         if !customLocation.isEmpty {
             return customLocation
         }
         
-        // 如果有selectedImage，尝试从其中读取地理位置元数据
-        if let image = selectedImage {
-            // 首先尝试从PHAsset中获取位置信息（如果有）
-            if let location = getLocationFromPHAsset() {
-                return location
-            }
-            
-            // 如果无法从PHAsset获取，则尝试从图片EXIF数据中获取
-            if let location = getLocationFromImage(image) {
-                return location
-            }
-        }
-        
+        // 不再自动读取地理位置，直接返回默认值
         return "xx·xx" // 无法获取地理位置或没有照片时的默认值
-    }
-    
-    // 从PHAsset中获取地理位置信息
-    private func getLocationFromPHAsset() -> String? {
-        // 注意：这个函数需要在实际项目中实现
-        // 需要保存选择照片时对应的PHAsset引用
-        // 这里仅提供示例代码框架
-        
-        // 假设我们有一个存储选中照片对应PHAsset的属性
-        // var selectedAsset: PHAsset?
-        
-        // guard let asset = selectedAsset, asset.location != nil else {
-        //     return nil
-        // }
-        
-        // let location = asset.location!
-        // let geocoder = CLGeocoder()
-        // var locationString: String? = nil
-        
-        // let semaphore = DispatchSemaphore(value: 0)
-        
-        // geocoder.reverseGeocodeLocation(location) { placemarks, error in
-        //     defer { semaphore.signal() }
-        //     
-        //     if let error = error {
-        //         print("反地理编码错误: \(error.localizedDescription)")
-        //         return
-        //     }
-        //     
-        //     guard let placemark = placemarks?.first else {
-        //         print("未找到地标信息")
-        //         return
-        //     }
-        //     
-        //     if let country = placemark.country, let locality = placemark.locality {
-        //         locationString = "\(country)·\(locality)"
-        //     } else if let country = placemark.country {
-        //         locationString = "\(country)"
-        //     } else if let locality = placemark.locality {
-        //         locationString = "\(locality)"
-        //     }
-        // }
-        
-        // _ = semaphore.wait(timeout: .now() + 5)
-        // return locationString
-        
-        // 由于我们没有实际的PHAsset引用，这里返回nil
-        return nil
     }
     
     // 获取图片拍摄日期
     private func getImageDate(_ image: UIImage) -> String? {
-        // 使用自定义日期
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy:MM:dd"
-        return formatter.string(from: customDate)
-    }
-    
-    // 格式化EXIF日期字符串
-    private func formatExifDate(_ dateString: String) -> String? {
-        // EXIF日期格式通常为："yyyy:MM:dd HH:mm:ss"
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        print("开始获取图片日期")
         
-        if let date = formatter.date(from: dateString) {
-            formatter.dateFormat = "yyyy:MM:dd"
-            return formatter.string(from: date)
+        // 如果设置了自定义日期，优先使用自定义日期
+        if let customDateString = getCustomDateIfSet() {
+            print("使用自定义日期: \(customDateString)")
+            return customDateString
         }
         
+        // 尝试从图片EXIF数据中获取创建日期
+        print("尝试从EXIF数据获取日期")
+        if let exifDate = getExifDateFromImage(image) {
+            print("成功从EXIF获取日期: \(exifDate)")
+            return exifDate
+        }
+        
+        // 如果无法获取EXIF日期，则使用文件创建日期或修改日期（如果可用）
+        // 这里我们无法直接获取文件日期，因为我们只有UIImage对象
+        // 所以最后回退到当前日期
+        print("无法获取EXIF日期，使用当前日期")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let currentDate = formatter.string(from: Date())
+        print("当前日期: \(currentDate)")
+        return currentDate
+    }
+    
+    // 检查是否应该使用自定义日期
+    private func getCustomDateIfSet() -> String? {
+        // 检查自定义日期是否有效且与当前日期不同
+        let calendar = Calendar.current
+        let currentYear = calendar.component(.year, from: Date())
+        let customYear = calendar.component(.year, from: customDate)
+        
+        // 只有当自定义日期与当前日期不同时才使用自定义日期
+        // 这样可以避免使用默认的当前日期
+        if customYear != currentYear || calendar.isDateInToday(customDate) == false {
+            print("自定义日期与当前日期不同")
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.string(from: customDate)
+        }
+        
+        print("自定义日期与当前日期相同，不使用自定义日期")
         return nil
     }
     
-    // 从图片中获取地理位置信息
-    private func getLocationFromImage(_ image: UIImage) -> String? {
-        // 尝试从图片的EXIF数据中获取GPS信息
+    // 从图片EXIF数据中获取创建日期
+    private func getExifDateFromImage(_ image: UIImage) -> String? {
         guard let imageData = image.jpegData(compressionQuality: 1.0) else {
             print("无法获取图片数据")
             return nil
@@ -784,104 +1141,251 @@ extension FrameoneView {
             return nil
         }
         
-        // 检查是否存在GPS字典
-        guard let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] else {
-            print("图片中不包含GPS信息")
-            return nil
+        print("图片元数据类型: \(type(of: metadata))")
+        print("图片元数据键: \(metadata.keys)")
+        
+        // 打印所有顶层元数据，帮助调试
+        for (key, value) in metadata {
+            print("元数据 [\(key)]: \(value)")
         }
         
-        // 提取经纬度信息 - 处理不同格式的GPS数据
-        var finalLatitude: Double = 0
-        var finalLongitude: Double = 0
-        
-        // 处理标准格式的GPS数据
-        if let latitudeRef = gpsDict[kCGImagePropertyGPSLatitudeRef as String] as? String,
-           let latitude = gpsDict[kCGImagePropertyGPSLatitude as String] as? Double,
-           let longitudeRef = gpsDict[kCGImagePropertyGPSLongitudeRef as String] as? String,
-           let longitude = gpsDict[kCGImagePropertyGPSLongitude as String] as? Double {
-            
-            finalLatitude = latitudeRef == "N" ? latitude : -latitude
-            finalLongitude = longitudeRef == "E" ? longitude : -longitude
-        }
-        // 处理某些设备可能使用的数组格式GPS数据
-        else if let latitudeArray = gpsDict[kCGImagePropertyGPSLatitude as String] as? [Double],
-                let latitudeRef = gpsDict[kCGImagePropertyGPSLatitudeRef as String] as? String,
-                let longitudeArray = gpsDict[kCGImagePropertyGPSLongitude as String] as? [Double],
-                let longitudeRef = gpsDict[kCGImagePropertyGPSLongitudeRef as String] as? String,
-                !latitudeArray.isEmpty && !longitudeArray.isEmpty {
-            
-            // 将度分秒格式转换为十进制度
-            let latDegrees = latitudeArray[0]
-            let latMinutes = latitudeArray.count > 1 ? latitudeArray[1] / 60.0 : 0
-            let latSeconds = latitudeArray.count > 2 ? latitudeArray[2] / 3600.0 : 0
-            let rawLatitude = latDegrees + latMinutes + latSeconds
-            
-            let lonDegrees = longitudeArray[0]
-            let lonMinutes = longitudeArray.count > 1 ? longitudeArray[1] / 60.0 : 0
-            let lonSeconds = longitudeArray.count > 2 ? longitudeArray[2] / 3600.0 : 0
-            let rawLongitude = lonDegrees + lonMinutes + lonSeconds
-            
-            finalLatitude = latitudeRef == "N" ? rawLatitude : -rawLatitude
-            finalLongitude = longitudeRef == "E" ? rawLongitude : -rawLongitude
-        } else {
-            print("无法解析GPS数据格式")
-            return nil
-        }
-        
-        // 验证经纬度是否在有效范围内
-        if abs(finalLatitude) > 90 || abs(finalLongitude) > 180 {
-            print("经纬度值超出有效范围")
-            return nil
-        }
-        
-        // 使用CLGeocoder进行反地理编码
-        let location = CLLocation(latitude: finalLatitude, longitude: finalLongitude)
-        let geocoder = CLGeocoder()
-        var locationString: String? = nil
-        
-        // 创建一个信号量来等待异步操作完成
-        let semaphore = DispatchSemaphore(value: 0)
-        
-        geocoder.reverseGeocodeLocation(location) { placemarks, error in
-            defer { semaphore.signal() }
-            
-            if let error = error {
-                print("反地理编码错误: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let placemark = placemarks?.first else {
-                print("未找到地标信息")
-                return
-            }
-            
-            // 构建地理位置字符串 - 优先使用城市和区域信息
-            if let locality = placemark.locality, let subLocality = placemark.subLocality {
-                // 城市和区，例如：北京·朝阳区
-                locationString = "\(locality)·\(subLocality)"
-            } else if let country = placemark.country, let locality = placemark.locality {
-                // 国家和城市，例如：中国·北京
-                locationString = "\(country)·\(locality)"
-            } else if let administrativeArea = placemark.administrativeArea, let locality = placemark.locality {
-                // 省和城市，例如：广东·广州
-                locationString = "\(administrativeArea)·\(locality)"
-            } else if let locality = placemark.locality {
-                // 仅城市，例如：上海
-                locationString = locality
-            } else if let country = placemark.country {
-                // 仅国家，例如：日本
-                locationString = country
-            } else {
-                // 如果没有有意义的地理信息，使用经纬度
-                let latString = String(format: "%.4f", finalLatitude)
-                let lonString = String(format: "%.4f", finalLongitude)
-                locationString = "\(latString),\(lonString)"
+        // 检查是否有{Exif}字典
+        if let exifDict = metadata["{Exif}"] as? [String: Any] {
+            print("找到{Exif}字典: \(exifDict.keys)")
+            // 处理{Exif}字典中的日期
+            for (key, value) in exifDict {
+                print("{Exif} [\(key)]: \(value)")
+                if let dateString = value as? String {
+                    print("尝试解析{Exif}日期: \(dateString)")
+                    if let formattedDate = formatExifDate(dateString) {
+                        return formattedDate
+                    }
+                }
             }
         }
         
-        // 等待反地理编码完成，最多等待5秒
-        _ = semaphore.wait(timeout: .now() + 5)
+        // 1. 尝试获取EXIF字典中的日期
+        if let exifDict = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any] {
+            print("找到EXIF字典: \(exifDict.keys)")
+            
+            // 尝试获取原始日期时间
+            if let dateTimeOriginal = exifDict[kCGImagePropertyExifDateTimeOriginal as String] as? String {
+                print("找到EXIF原始日期: \(dateTimeOriginal)")
+                return formatExifDate(dateTimeOriginal)
+            }
+            
+            // 尝试获取数字化日期时间
+            if let dateTimeDigitized = exifDict[kCGImagePropertyExifDateTimeDigitized as String] as? String {
+                print("找到EXIF数字化日期: \(dateTimeDigitized)")
+                return formatExifDate(dateTimeDigitized)
+            }
+            
+            // 尝试获取其他可能的日期字段
+            for (key, value) in exifDict {
+                print("EXIF [\(key)]: \(value)")
+                if key.lowercased().contains("date") || key.lowercased().contains("time"),
+                   let dateString = value as? String {
+                    print("找到EXIF其他日期字段 \(key): \(dateString)")
+                    if let formattedDate = formatExifDate(dateString) {
+                        return formattedDate
+                    }
+                }
+            }
+        }
         
-        return locationString
+        // 2. 尝试获取TIFF字典中的日期时间
+        if let tiffDict = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any] {
+            print("找到TIFF字典: \(tiffDict.keys)")
+            
+            if let dateTime = tiffDict[kCGImagePropertyTIFFDateTime as String] as? String {
+                print("找到TIFF日期: \(dateTime)")
+                return formatExifDate(dateTime)
+            }
+            
+            // 尝试其他可能的TIFF日期字段
+            for (key, value) in tiffDict {
+                print("TIFF [\(key)]: \(value)")
+                if key.lowercased().contains("date") || key.lowercased().contains("time"),
+                   let dateString = value as? String {
+                    print("找到TIFF其他日期字段 \(key): \(dateString)")
+                    if let formattedDate = formatExifDate(dateString) {
+                        return formattedDate
+                    }
+                }
+            }
+        }
+        
+        // 3. 尝试获取GPS字典中的日期时间
+        if let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] {
+            print("找到GPS字典: \(gpsDict.keys)")
+            
+            if let gpsDateStamp = gpsDict[kCGImagePropertyGPSDateStamp as String] as? String {
+                print("找到GPS日期: \(gpsDateStamp)")
+                return formatExifDate(gpsDateStamp)
+            }
+            
+            // 检查GPS字典中的所有字段
+            for (key, value) in gpsDict {
+                print("GPS [\(key)]: \(value)")
+                if key.lowercased().contains("date") || key.lowercased().contains("time"),
+                   let dateString = value as? String {
+                    print("找到GPS其他日期字段 \(key): \(dateString)")
+                    if let formattedDate = formatExifDate(dateString) {
+                        return formattedDate
+                    }
+                }
+            }
+        }
+        
+        // 4. 尝试获取IPTC字典中的创建日期
+        if let iptcDict = metadata[kCGImagePropertyIPTCDictionary as String] as? [String: Any] {
+            print("找到IPTC字典: \(iptcDict.keys)")
+            
+            // 使用定义的常量
+            if let creationDate = iptcDict[kCGImagePropertyIPTCCreationDate as String] as? String {
+                print("找到IPTC创建日期: \(creationDate)")
+                return formatExifDate(creationDate)
+            }
+            
+            // 检查IPTC字典中的所有字段
+            for (key, value) in iptcDict {
+                print("IPTC [\(key)]: \(value)")
+                if key.lowercased().contains("date") || key.lowercased().contains("time"),
+                   let dateString = value as? String {
+                    print("找到IPTC其他日期字段 \(key): \(dateString)")
+                    if let formattedDate = formatExifDate(dateString) {
+                        return formattedDate
+                    }
+                }
+            }
+        }
+        
+        // 5. 尝试获取PNG、JFIF或其他格式特有的日期
+        for (key, value) in metadata {
+            if key.lowercased().contains("date") || key.lowercased().contains("time"),
+               let dateString = value as? String {
+                print("找到顶层日期字段 \(key): \(dateString)")
+                if let formattedDate = formatExifDate(dateString) {
+                    return formattedDate
+                }
+            }
+            
+            // 检查嵌套字典
+            if let dict = value as? [String: Any] {
+                for (nestedKey, nestedValue) in dict {
+                    if nestedKey.lowercased().contains("date") || nestedKey.lowercased().contains("time") {
+                        print("找到嵌套日期字段 \(key).\(nestedKey): \(nestedValue)")
+                        if let dateString = nestedValue as? String, let formattedDate = formatExifDate(dateString) {
+                            return formattedDate
+                        } else if let dateNumber = nestedValue as? NSNumber {
+                            // 处理数字格式的日期（可能是时间戳）
+                            let dateFormatter = DateFormatter()
+                            dateFormatter.dateFormat = "yyyy-MM-dd"
+                            let date = Date(timeIntervalSince1970: dateNumber.doubleValue)
+                            print("从数字时间戳转换日期: \(dateFormatter.string(from: date))")
+                            return dateFormatter.string(from: date)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 6. 检查是否有特殊的日期属性
+        let specialDateKeys = ["DateTimeOriginal", "DateTime", "CreationDate", "ModificationDate"]
+        for key in specialDateKeys {
+            if let dateValue = metadata[key] as? String {
+                print("找到特殊日期键 \(key): \(dateValue)")
+                if let formattedDate = formatExifDate(dateValue) {
+                    return formattedDate
+                }
+            }
+        }
+        
+        print("未找到任何日期信息")
+        return nil
+    }
+    
+    // 格式化EXIF日期字符串
+    private func formatExifDate(_ dateString: String) -> String? {
+        print("尝试格式化日期字符串: \(dateString)")
+        
+        // 尝试多种可能的EXIF日期格式
+        let possibleFormats = [
+            "yyyy:MM:dd HH:mm:ss",  // 标准EXIF格式
+            "yyyy-MM-dd HH:mm:ss",  // 连字符格式
+            "yyyy/MM/dd HH:mm:ss",  // 斜杠格式
+            "yyyy年MM月dd日 EEEE HH:mm", // 中文格式带星期和时间
+            "yyyy年MM月dd日 HH:mm"      // 中文格式带时间不带星期
+        ]
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN") // 设置中文区域以支持中文星期
+        
+        // 尝试每一种可能的格式
+        for format in possibleFormats {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: dateString) {
+                // 成功解析，返回标准格式
+                print("成功使用格式 \(format) 解析日期")
+                formatter.dateFormat = "yyyy-MM-dd"
+                return formatter.string(from: date)
+            }
+        }
+        
+        // 检查是否包含年月日的中文格式，不管是否有星期和时间
+        // 首先尝试直接匹配完整的中文日期格式
+        if dateString.contains("年") && dateString.contains("月") && dateString.contains("日") {
+            print("检测到中文日期格式")
+            
+            // 匹配类似"2025年5月16日"的格式，忽略后面可能的星期和时间
+            let yearPattern = "(\\d{4})年(\\d{1,2})月(\\d{1,2})日"
+            if let regex = try? NSRegularExpression(pattern: yearPattern, options: []),
+               let match = regex.firstMatch(in: dateString, options: [], range: NSRange(location: 0, length: dateString.count)) {
+                
+                let nsString = dateString as NSString
+                let yearRange = match.range(at: 1)
+                let monthRange = match.range(at: 2)
+                let dayRange = match.range(at: 3)
+                
+                if yearRange.location != NSNotFound && monthRange.location != NSNotFound && dayRange.location != NSNotFound {
+                    let year = nsString.substring(with: yearRange)
+                    let month = nsString.substring(with: monthRange)
+                    let day = nsString.substring(with: dayRange)
+                    
+                    let formattedDate = "\(year)-\(month.count == 1 ? "0\(month)" : month)-\(day.count == 1 ? "0\(day)" : day)"
+                    print("成功从中文日期提取: \(formattedDate)")
+                    return formattedDate
+                }
+            }
+        }
+        
+        // 尝试提取任何看起来像日期的部分
+        // 匹配四位数年份
+        let yearOnlyPattern = "(\\d{4})"
+        if let regex = try? NSRegularExpression(pattern: yearOnlyPattern, options: []),
+           let match = regex.firstMatch(in: dateString, options: [], range: NSRange(location: 0, length: dateString.count)) {
+            
+            let nsString = dateString as NSString
+            let yearRange = match.range(at: 1)
+            
+            if yearRange.location != NSNotFound {
+                let year = nsString.substring(with: yearRange)
+                print("只能提取到年份: \(year)，使用当前月日")
+                
+                // 使用当前的月和日
+                let currentDate = Date()
+                let formatter = DateFormatter()
+                formatter.dateFormat = "MM-dd"
+                let monthDay = formatter.string(from: currentDate)
+                
+                return "\(year)-\(monthDay)"
+            }
+        }
+        
+        // 所有尝试都失败
+        print("无法解析日期格式: \(dateString)")
+        return nil
     }
 }
+
+// ... existing code ...
