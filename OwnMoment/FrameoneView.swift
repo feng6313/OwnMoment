@@ -38,6 +38,12 @@ struct FrameoneView: View {
     @State private var currentPosition: CGSize = .zero
     @State private var previousPosition: CGSize = .zero
     
+    // 添加性能优化相关的状态变量
+    @State private var isDragging: Bool = false
+    @State private var isScaling: Bool = false
+    @State private var cachedImageBounds: CGRect = .zero
+    @State private var lastValidPosition: CGSize = .zero
+    
     // 添加设置相关的状态变量
     @State private var isSettingsPresented = false
     @State private var customDate = Date()
@@ -86,7 +92,7 @@ struct FrameoneView: View {
                     // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
                     ZStack {
                         Rectangle()
-                            .fill(Color.blue) // 暂用蓝色填充
+                            .fill(Color.white) // 暂用蓝色填充
                             .frame(width: 339, height: 339)
                         
                         // 显示选择的图片
@@ -100,10 +106,10 @@ struct FrameoneView: View {
                                     // 应用缩放效果
                                     .scaleEffect(currentScale)
                                     // 应用位置偏移，但限制在显示区域内
-                                    .offset(limitOffsetToDisplayArea(currentPosition, scale: currentScale))
-                                    // 添加动画效果，使缩放和移动更加流畅
-                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentScale)
-                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentPosition)
+                                    .offset(isDragging || isScaling ? currentPosition : lastValidPosition)
+                                    // 只在手势结束时应用动画
+                                    .animation(isDragging || isScaling ? nil : .spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0), value: currentScale)
+                                    .animation(isDragging || isScaling ? nil : .spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0), value: lastValidPosition)
                                     // 添加手势识别
                                     .gesture(
                                         // 组合缩放和拖动手势
@@ -111,25 +117,32 @@ struct FrameoneView: View {
                                             // 缩放手势
                                             MagnificationGesture()
                                                 .onChanged { value in
+                                                    isScaling = true
                                                     // 限制缩放范围在1.0到5.0之间
                                                     let newScale = min(max(previousScale * value, 1.0), 5.0)
                                                     currentScale = newScale
                                                 }
                                                 .onEnded { value in
+                                                    isScaling = false
                                                     // 保存当前缩放值作为下次手势的基准
                                                     previousScale = currentScale
                                                     
                                                     // 如果缩放小于1.1，平滑地恢复到1.0
                                                     if currentScale < 1.1 {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            currentScale = 1.0
-                                                            previousScale = 1.0
-                                                        }
+                                                        currentScale = 1.0
+                                                        previousScale = 1.0
                                                     }
+                                                    
+                                                    // 重新计算并限制位置
+                                                    let correctedPosition = limitOffsetToDisplayAreaOptimized(currentPosition, scale: currentScale, image: image)
+                                                    currentPosition = correctedPosition
+                                                    previousPosition = correctedPosition
+                                                    lastValidPosition = correctedPosition
                                                 },
                                             // 拖动手势
                                             DragGesture()
                                                 .onChanged { value in
+                                                    isDragging = true
                                                     // 计算新的位置
                                                     let newPosition = CGSize(
                                                         width: previousPosition.width + value.translation.width,
@@ -138,21 +151,27 @@ struct FrameoneView: View {
                                                     currentPosition = newPosition
                                                 }
                                                 .onEnded { value in
+                                                    isDragging = false
                                                     // 保存当前位置作为下次手势的基准
                                                     previousPosition = currentPosition
                                                     
                                                     // 检查并修正边界，添加回弹效果
-                                                    let correctedPosition = limitOffsetToDisplayArea(currentPosition, scale: currentScale)
-                                                    if correctedPosition != currentPosition {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            currentPosition = correctedPosition
-                                                            previousPosition = correctedPosition
-                                                        }
-                                                    }
+                                                    let correctedPosition = limitOffsetToDisplayAreaOptimized(currentPosition, scale: currentScale, image: image)
+                                                    currentPosition = correctedPosition
+                                                    previousPosition = correctedPosition
+                                                    lastValidPosition = correctedPosition
                                                 }
                                         )
                                     )
                                     .clipped() // 隐藏超出显示区域的部分
+                                    .onAppear {
+                                        // 初始化缓存的图片边界
+                                        updateCachedImageBounds(for: image)
+                                    }
+                                    .onChange(of: currentScale) { oldValue, newValue in
+                                        // 缩放变化时更新缓存
+                                        updateCachedImageBounds(for: image)
+                                    }
                                 
                                 // 添加日期显示
                                 Text(getImageDate(image) ?? "未知日期")
@@ -731,59 +750,16 @@ extension FrameoneView {
                                     .frame(width: displayWidth, height: displayHeight)
                                     // 应用缩放效果
                                     .scaleEffect(currentScale)
-                                    // 应用位置偏移，但限制在显示区域内
-                                    .offset(limitOffsetToDisplayArea(currentPosition, scale: currentScale))
-                                    // 添加动画效果，使缩放和移动更加流畅
-                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentScale)
-                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1), value: currentPosition)
-                                    // 添加手势识别
-                                    .gesture(
-                                        // 组合缩放和拖动手势
-                                        SimultaneousGesture(
-                                            // 缩放手势
-                                            MagnificationGesture()
-                                                .onChanged { value in
-                                                    // 限制缩放范围在1.0到5.0之间
-                                                    let newScale = min(max(previousScale * value, 1.0), 5.0)
-                                                    currentScale = newScale
-                                                }
-                                                .onEnded { value in
-                                                    // 保存当前缩放值作为下次手势的基准
-                                                    previousScale = currentScale
-                                                    
-                                                    // 如果缩放小于1.1，平滑地恢复到1.0
-                                                    if currentScale < 1.1 {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            currentScale = 1.0
-                                                            previousScale = 1.0
-                                                        }
-                                                    }
-                                                },
-                                            // 拖动手势
-                                            DragGesture()
-                                                .onChanged { value in
-                                                    // 计算新的位置
-                                                    let newPosition = CGSize(
-                                                        width: previousPosition.width + value.translation.width,
-                                                        height: previousPosition.height + value.translation.height
-                                                    )
-                                                    currentPosition = newPosition
-                                                }
-                                                .onEnded { value in
-                                                    // 保存当前位置作为下次手势的基准
-                                                    previousPosition = currentPosition
-                                                    
-                                                    // 检查并修正边界，添加回弹效果
-                                                    let correctedPosition = limitOffsetToDisplayArea(currentPosition, scale: currentScale)
-                                                    if correctedPosition != currentPosition {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            currentPosition = correctedPosition
-                                                            previousPosition = correctedPosition
-                                                        }
-                                                    }
-                                                }
-                                        )
-                                    )
+                                    // 应用位置偏移，使用最新的位置计算
+                                    .offset(lastValidPosition)
+                                    .clipped() // 隐藏超出显示区域的部分
+                                
+                                // 添加日期显示
+                                Text(getImageDate(image) ?? "未知日期")
+                                    .font(.custom("PixelMplus12-Regular", size: 18))
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(dateTextColor)
+                                    .padding([.bottom, .trailing], 10)
                             }
                         }
                     }
@@ -877,44 +853,16 @@ extension FrameoneView {
                                     .resizable()
                                     .scaledToFill() // 使用fill而不是fit，确保完全填充
                                     .scaleEffect(currentScale)
-                                    // 应用缩放效果
-                                    .offset(currentPosition)
-                                    // 应用位置偏移，但限制在显示区域内
-                                    .gesture(
-                                        // 组合缩放和拖动手势
-                                        SimultaneousGesture(
-                                            // 缩放手势
-                                            MagnificationGesture()
-                                                .onChanged { value in
-                                                    // 限制缩放范围在1.0到5.0之间
-                                                    let newScale = min(max(lastScale * value, 1.0), 5.0)
-                                                    currentScale = newScale
-                                                }
-                                                .onEnded { _ in
-                                                    // 保存当前缩放值作为下次手势的基准
-                                                    lastScale = currentScale
-                                                },
-                                            // 拖动手势
-                                            DragGesture()
-                                                .onChanged { value in
-                                                    // 计算新的位置
-                                                    let newX = lastPosition.width + value.translation.width
-                                                    let newY = lastPosition.height + value.translation.height
-                                                    
-                                                    // 限制拖动范围，确保图片不会完全移出显示区域
-                                                    let (minX, maxX, minY, maxY) = calculateDragLimits()
-                                                    
-                                                    let constrainedX = min(max(newX, minX), maxX)
-                                                    let constrainedY = min(max(newY, minY), maxY)
-                                                    
-                                                    currentPosition = CGSize(width: constrainedX, height: constrainedY)
-                                                }
-                                                .onEnded { _ in
-                                                    // 保存当前位置作为下次手势的基准
-                                                    lastPosition = currentPosition
-                                                }
-                                        )
-                                    )
+                                    // 应用位置偏移，使用最新的位置计算
+                                    .offset(lastValidPosition)
+                                    .clipped() // 隐藏超出显示区域的部分
+                                
+                                // 添加日期显示
+                                Text(getImageDate(image) ?? "未知日期")
+                                    .font(.custom("PixelMplus12-Regular", size: 18))
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(dateTextColor)
+                                    .padding([.bottom, .trailing], 10)
                             }
                         }
                     }
@@ -1015,7 +963,51 @@ extension FrameoneView {
         frameHeight = displaySize + 116 // 顶部和底部留出足够空间给文字
     }
     
-    // 计算偏移量，允许图片在显示区域内移动
+    // 优化后的偏移量计算函数，减少重复计算
+    func limitOffsetToDisplayAreaOptimized(_ offset: CGSize, scale: CGFloat, image: UIImage) -> CGSize {
+        // 使用缓存的边界信息，避免重复计算
+        if cachedImageBounds == .zero {
+            updateCachedImageBounds(for: image)
+        }
+        
+        // 应用用户的缩放到缓存的尺寸
+        let scaledWidth = cachedImageBounds.width * scale
+        let scaledHeight = cachedImageBounds.height * scale
+        
+        // 计算可移动的范围
+        let maxOffsetX = max(0, (scaledWidth - displayAreaSize) / 2)
+        let maxOffsetY = max(0, (scaledHeight - displayAreaSize) / 2)
+        
+        // 限制偏移量，确保图片不会移出显示区域
+        let limitedX = min(maxOffsetX, max(-maxOffsetX, offset.width))
+        let limitedY = min(maxOffsetY, max(-maxOffsetY, offset.height))
+        
+        return CGSize(width: limitedX, height: limitedY)
+    }
+    
+    // 更新缓存的图片边界信息
+    func updateCachedImageBounds(for image: UIImage) {
+        let imageSize = image.size
+        let imageAspectRatio = imageSize.width / imageSize.height
+        let displayAreaAspectRatio = displayAreaSize / displayAreaSize
+        
+        var scaledWidth: CGFloat
+        var scaledHeight: CGFloat
+        
+        if imageAspectRatio > displayAreaAspectRatio {
+            // 图片较宽，高度适应显示区域
+            scaledHeight = displayAreaSize
+            scaledWidth = scaledHeight * imageAspectRatio
+        } else {
+            // 图片较高，宽度适应显示区域
+            scaledWidth = displayAreaSize
+            scaledHeight = scaledWidth / imageAspectRatio
+        }
+        
+        cachedImageBounds = CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight)
+    }
+    
+    // 计算偏移量，允许图片在显示区域内移动（保留原函数作为备用）
     func limitOffsetToDisplayArea(_ offset: CGSize, scale: CGFloat) -> CGSize {
         guard let image = selectedImage else { return .zero }
         
