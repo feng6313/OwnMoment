@@ -95,6 +95,14 @@ struct FrameoneView: View {
                             .fill(Color.white) // 暂用蓝色填充
                             .frame(width: 339, height: 339)
                         
+                        // 当选择了"内容"选项时，显示提示文字
+                        if selectedColorOption == 1 {
+                            Text("+点击添加回忆内容")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color("#F2EEE3"))
+                                .padding(.bottom, 280) // 放在矩形框上方
+                        }
+                        
                         // 显示选择的图片
                         if let image = selectedImage {
                             
@@ -273,7 +281,7 @@ struct FrameoneView: View {
                                         .aspectRatio(contentMode: .fit)
                                         .frame(width: 20, height: 20)
                                     
-                                    Text("文字")
+                                    Text("内容")
                                         .font(.system(size: 12))
                                         .foregroundColor(.white)
                                 }
