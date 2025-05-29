@@ -7,25 +7,10 @@
 
 import SwiftUI
 import Photos
-import CoreLocation
-import MapKit
 import UIKit
-import ImageIO
 #if canImport(AppKit)
 import AppKit
 #endif
-
-// 定义ImageIO框架中的常量
-let kCGImagePropertyExifDictionary = "{Exif}" as CFString
-let kCGImagePropertyTIFFDictionary = "{TIFF}" as CFString
-let kCGImagePropertyGPSDictionary = "{GPS}" as CFString
-let kCGImagePropertyIPTCDictionary = "{IPTC}" as CFString
-let kCGImagePropertyExifDateTimeOriginal = "DateTimeOriginal" as CFString
-let kCGImagePropertyExifDateTimeDigitized = "DateTimeDigitized" as CFString
-let kCGImagePropertyTIFFDateTime = "DateTime" as CFString
-let kCGImagePropertyIPTCCreationDate = "CreationDate" as CFString
-let kCGImagePropertyGPSDateStamp = "DateStamp" as CFString
-
 
 struct FrameoneView: View {
     @Environment(\.presentationMode) var presentationMode
@@ -48,6 +33,12 @@ struct FrameoneView: View {
     @State private var isSettingsPresented = false
     @State private var customDate = Date()
     @State private var customLocation = ""
+    @State private var showDate = true
+    @State private var showLocation = true
+    
+    // 添加状态变量来控制RememberView的显示
+    @State private var isRememberViewPresented = false
+    @State private var memoryText = "我的独家记忆"
     
     // 添加保存相关的状态变量
     @State private var showSaveAlert = false
@@ -89,19 +80,26 @@ struct FrameoneView: View {
                         .fill(frameColor)
                         .frame(width: 371, height: 455)
                     
+                    // 当选择内容选项时，显示添加回忆内容的提示文字在底部选择框上方85点的位置
+                    if selectedColorOption == 1 {
+                        Button(action: {
+                            isRememberViewPresented = true
+                        }) {
+                            Text("+点击添加回忆内容")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color.gray)
+                        }
+                        .frame(width: 339, height: 44)
+                        .offset(y: 455/2 + 85) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上85点
+                        .zIndex(1) // 确保按钮在最上层
+                        .allowsHitTesting(true) // 确保按钮可以接收点击事件
+                    }
+                    
                     // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
                     ZStack {
                         Rectangle()
                             .fill(Color.white) // 暂用蓝色填充
                             .frame(width: 339, height: 339)
-                        
-                        // 当选择了"内容"选项时，显示提示文字
-                        if selectedColorOption == 1 {
-                            Text("+点击添加回忆内容")
-                                .font(.system(size: 16))
-                                .foregroundColor(Color("#F2EEE3"))
-                                .padding(.bottom, 280) // 放在矩形框上方
-                        }
                         
                         // 显示选择的图片
                         if let image = selectedImage {
@@ -172,6 +170,7 @@ struct FrameoneView: View {
                                         )
                                     )
                                     .clipped() // 隐藏超出显示区域的部分
+                                    .allowsHitTesting(true) // 始终允许图片的手势识别
                                     .onAppear {
                                         // 初始化缓存的图片边界
                                         updateCachedImageBounds(for: image)
@@ -182,11 +181,13 @@ struct FrameoneView: View {
                                     }
                                 
                                 // 添加日期显示
-                                Text(getImageDate(image) ?? "未知日期")
-                                    .font(.custom("PixelMplus12-Regular", size: 18))
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(dateTextColor)
-                                    .padding([.bottom, .trailing], 10)
+                                if showDate {
+                                    Text(getImageDate(image) ?? "未知日期")
+                                        .font(.custom("PixelMplus12-Regular", size: 18))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(dateTextColor)
+                                        .padding([.bottom, .trailing], 10)
+                                }
                             }
                         } else {
                             Text("未选择图片")
@@ -196,21 +197,23 @@ struct FrameoneView: View {
                     .offset(y: -42) // 向上移动42点
                     
                     // 添加图片下方的文字信息
-                    VStack(alignment: .leading, spacing: 2) { 
-                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(truncateText(memoryText, maxLength: 15))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(titleTextColor)
                         
-                        HStack(spacing: 4) {
-                            Image("map_s")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 14, height: 14)
-                                .foregroundColor(iconColor)
-                            
-                            Text(getLocationText())
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(locationTextColor)
+                        if showLocation {
+                            HStack(spacing: 2) {
+                                Image("map_s")
+                                    .renderingMode(.template)
+                                    .resizable()
+                                    .frame(width: 14, height: 14)
+                                    .foregroundColor(iconColor)
+                                
+                                Text(getLocationText())
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(locationTextColor)
+                            }
                         }
                     }
                     .padding(.top, 350) // 向下移动350点
@@ -221,6 +224,11 @@ struct FrameoneView: View {
                     if showColorControls {
                         SlideSelector(selectedOption: $selectedSlideOption)
                             .offset(y: 455/2 + 32) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity.combined(with: .move(edge: .bottom))
+                            ))
+                            .animation(.easeInOut(duration: 0.3), value: showColorControls)
                     }
                     
                     // 添加图标选项栏，放在滑动选择按钮下方
@@ -229,8 +237,10 @@ struct FrameoneView: View {
                         
                         // 颜色选项
                         Button(action: {
-                            selectedColorOption = 0
-                            showColorControls = true // 显示圆形色块和滑动按钮
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedColorOption = 0
+                                showColorControls = true // 显示圆形色块和滑动按钮
+                            }
                         }) {
                             ZStack {
                                 // 圆角矩形框
@@ -261,8 +271,10 @@ struct FrameoneView: View {
                         
                         // 文字选项
                         Button(action: {
-                            selectedColorOption = 1
-                            showColorControls = false // 隐藏圆形色块和滑动按钮
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedColorOption = 1
+                                showColorControls = false // 隐藏圆形色块和滑动按钮
+                            }
                         }) {
                             ZStack {
                                 // 圆角矩形框
@@ -293,8 +305,10 @@ struct FrameoneView: View {
                         
                         // 更多选项
                         Button(action: {
-                            selectedColorOption = 2
-                            showColorControls = false // 隐藏圆形色块和滑动按钮
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedColorOption = 2
+                                showColorControls = false // 隐藏圆形色块和滑动按钮
+                            }
                         }) {
                             ZStack {
                                 // 圆角矩形框
@@ -336,6 +350,83 @@ struct FrameoneView: View {
                             iconColor: $iconColor
                         )
                         .offset(y: 455/2 + 24 + 80) // 图标选项栏下方10点的位置
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom)),
+                            removal: .opacity.combined(with: .move(edge: .bottom))
+                        ))
+                        .animation(.easeInOut(duration: 0.3), value: showColorControls)
+                    }
+                    
+                    // 添加更多选项的UI
+                    if selectedColorOption == 2 {
+                        VStack(spacing: 0) {
+                            // 日期选项
+                            Button(action: {
+                                isSettingsPresented = true
+                            }) {
+                                HStack {
+                                    Image("date")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 24, height: 24)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("日期")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.white)
+                                        .padding(.leading, 8)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(Color.gray)
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(height: 56)
+                            }
+                            
+                            // 分隔线
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(height: 0.5)
+                                .padding(.leading, 50)
+                            
+                            // 地点选项
+                            Button(action: {
+                                isSettingsPresented = true
+                            }) {
+                                HStack {
+                                    Image("map_b")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 24, height: 24)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("地点")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.white)
+                                        .padding(.leading, 8)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(Color.gray)
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(height: 50)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .background(Color("#2C2C2E"))
+                        .cornerRadius(10)
+                        .padding(.horizontal, 20)
+                        .frame(height: 100)
+                        .offset(y: 455/2 + 85) // 白色背景高度为455，除以2得到从中心到底部的距离，再减去选项高度和上方间距
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom)),
+                            removal: .opacity.combined(with: .move(edge: .bottom))
+                        ))
+                        .animation(.easeInOut(duration: 0.3), value: selectedColorOption)
                     }
                 }
                 
@@ -347,6 +438,9 @@ struct FrameoneView: View {
         .toolbarColorScheme(.dark, for: .navigationBar) // 保持导航栏颜色风格一致
         .toolbarBackground(Color("#0C0F14"), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .sheet(isPresented: $isRememberViewPresented) {
+            RememberView(memoryText: $memoryText)
+        }
         .toolbar(content: {
             // 左侧返回按钮
             ToolbarItem(placement: .navigationBarLeading) {
@@ -365,27 +459,18 @@ struct FrameoneView: View {
                     .font(.headline)
             }
             
-            // 右侧设置和保存按钮
+            // 右侧保存按钮
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 10) {
-                    Button(action: {
-                        isSettingsPresented = true
-                    }) {
-                        Image(systemName: "gear")
-                            .foregroundColor(.white)
-                    }
-                    
-                    Button(action: {
-                        // 保存按钮的操作
-                        saveImageToPhotoAlbum()
-                    }) {
-                        Text("保存")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 60, height: 30, alignment: .center)
-                            .background(Color("#007AFF"))
-                            .cornerRadius(15)
-                    }
+                Button(action: {
+                    // 保存按钮的操作
+                    saveImageToPhotoAlbum()
+                }) {
+                    Text("保存")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(width: 60, height: 30, alignment: .center)
+                        .background(Color("#007AFF"))
+                        .cornerRadius(15)
                 }
             }
         })
@@ -397,7 +482,9 @@ struct FrameoneView: View {
         .sheet(isPresented: $isSettingsPresented) {
             SettingsView(
                 customDate: $customDate,
-                customLocation: $customLocation
+                customLocation: $customLocation,
+                showDate: $showDate,
+                showLocation: $showLocation
             )
         }
         .alert(isPresented: $showSaveAlert) {
@@ -416,7 +503,7 @@ struct FrameoneView_Previews: PreviewProvider {
     static var previews: some View {
         // 为了预览，我们需要一个NavigationView上下文
         NavigationView {
-            FrameoneView(selectedImage: UIImage(named: "photo"), frameIndex: 0)
+            FrameoneView(selectedImage: nil, frameIndex: 0)
         }
     }
 }
@@ -763,11 +850,13 @@ extension FrameoneView {
                                     .clipped() // 隐藏超出显示区域的部分
                                 
                                 // 添加日期显示
-                                Text(getImageDate(image) ?? "未知日期")
-                                    .font(.custom("PixelMplus12-Regular", size: 18))
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(dateTextColor)
-                                    .padding([.bottom, .trailing], 10)
+                                if showDate {
+                                    Text(getImageDate(image) ?? "未知日期")
+                                        .font(.custom("PixelMplus12-Regular", size: 18))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(dateTextColor)
+                                        .padding([.bottom, .trailing], 10)
+                                }
                             }
                         }
                     }
@@ -775,21 +864,23 @@ extension FrameoneView {
                     .offset(y: -42) // 向上移动42点
                     
                     // 添加图片下方的文字信息
-                    VStack(alignment: .leading, spacing: 2) { 
-                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(truncateText(memoryText, maxLength: 15))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(titleTextColor)
                         
-                        HStack(spacing: 4) {
-                            Image("map_s")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 14, height: 14)
-                                .foregroundColor(iconColor)
-                            
-                            Text(getLocationText())
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(locationTextColor)
+                        if showLocation {
+                            HStack(spacing: 2) {
+                                Image("map_s")
+                                    .renderingMode(.template)
+                                    .resizable()
+                                    .frame(width: 14, height: 14)
+                                    .foregroundColor(iconColor)
+                                
+                                Text(getLocationText())
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(locationTextColor)
+                            }
                         }
                     }
                     .padding(.top, 350) // 向下移动350点，与设置界面保持一致
@@ -866,11 +957,13 @@ extension FrameoneView {
                                     .clipped() // 隐藏超出显示区域的部分
                                 
                                 // 添加日期显示
-                                Text(getImageDate(image) ?? "未知日期")
-                                    .font(.custom("PixelMplus12-Regular", size: 18))
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(dateTextColor)
-                                    .padding([.bottom, .trailing], 10)
+                                if showDate {
+                                    Text(getImageDate(image) ?? "未知日期")
+                                        .font(.custom("PixelMplus12-Regular", size: 18))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(dateTextColor)
+                                        .padding([.bottom, .trailing], 10)
+                                }
                             }
                         }
                     }
@@ -883,16 +976,18 @@ extension FrameoneView {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(titleTextColor)
                         
-                        HStack(spacing: 4) {
-                            Image("map_s")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 14, height: 14)
-                                .foregroundColor(iconColor)
-                            
-                            Text(getLocationText())
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(locationTextColor)
+                        if showLocation {
+                            HStack(spacing: 4) {
+                                Image("map_s")
+                                    .renderingMode(.template)
+                                    .resizable()
+                                    .frame(width: 14, height: 14)
+                                    .foregroundColor(iconColor)
+                                
+                                Text(getLocationText())
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundColor(locationTextColor)
+                            }
                         }
                     }
                     .padding(.top, 350) // 向下移动350点，与设置界面保持一致
@@ -1072,36 +1167,21 @@ extension FrameoneView {
             return customLocation
         }
         
-        // 不再自动读取地理位置，直接返回默认值
-        return "xx·xx" // 无法获取地理位置或没有照片时的默认值
+        // 返回默认值"中国"
+        return "中国"
     }
     
     // 获取图片拍摄日期
     private func getImageDate(_ image: UIImage) -> String? {
-        print("开始获取图片日期")
-        
         // 如果设置了自定义日期，优先使用自定义日期
         if let customDateString = getCustomDateIfSet() {
-            print("使用自定义日期: \(customDateString)")
             return customDateString
         }
         
-        // 尝试从图片EXIF数据中获取创建日期
-        print("尝试从EXIF数据获取日期")
-        if let exifDate = getExifDateFromImage(image) {
-            print("成功从EXIF获取日期: \(exifDate)")
-            return exifDate
-        }
-        
-        // 如果无法获取EXIF日期，则使用文件创建日期或修改日期（如果可用）
-        // 这里我们无法直接获取文件日期，因为我们只有UIImage对象
-        // 所以最后回退到当前日期
-        print("无法获取EXIF日期，使用当前日期")
+        // 使用当前日期
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        let currentDate = formatter.string(from: Date())
-        print("当前日期: \(currentDate)")
-        return currentDate
+        return formatter.string(from: Date())
     }
     
     // 检查是否应该使用自定义日期
@@ -1114,276 +1194,11 @@ extension FrameoneView {
         // 只有当自定义日期与当前日期不同时才使用自定义日期
         // 这样可以避免使用默认的当前日期
         if customYear != currentYear || calendar.isDateInToday(customDate) == false {
-            print("自定义日期与当前日期不同")
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             return formatter.string(from: customDate)
         }
         
-        print("自定义日期与当前日期相同，不使用自定义日期")
-        return nil
-    }
-    
-    // 从图片EXIF数据中获取创建日期
-    private func getExifDateFromImage(_ image: UIImage) -> String? {
-        guard let imageData = image.jpegData(compressionQuality: 1.0) else {
-            print("无法获取图片数据")
-            return nil
-        }
-        
-        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil) else {
-            print("无法创建图片源")
-            return nil
-        }
-        
-        guard let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else {
-            print("无法获取图片元数据")
-            return nil
-        }
-        
-        print("图片元数据类型: \(type(of: metadata))")
-        print("图片元数据键: \(metadata.keys)")
-        
-        // 打印所有顶层元数据，帮助调试
-        for (key, value) in metadata {
-            print("元数据 [\(key)]: \(value)")
-        }
-        
-        // 检查是否有{Exif}字典
-        if let exifDict = metadata["{Exif}"] as? [String: Any] {
-            print("找到{Exif}字典: \(exifDict.keys)")
-            // 处理{Exif}字典中的日期
-            for (key, value) in exifDict {
-                print("{Exif} [\(key)]: \(value)")
-                if let dateString = value as? String {
-                    print("尝试解析{Exif}日期: \(dateString)")
-                    if let formattedDate = formatExifDate(dateString) {
-                        return formattedDate
-                    }
-                }
-            }
-        }
-        
-        // 1. 尝试获取EXIF字典中的日期
-        if let exifDict = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any] {
-            print("找到EXIF字典: \(exifDict.keys)")
-            
-            // 尝试获取原始日期时间
-            if let dateTimeOriginal = exifDict[kCGImagePropertyExifDateTimeOriginal as String] as? String {
-                print("找到EXIF原始日期: \(dateTimeOriginal)")
-                return formatExifDate(dateTimeOriginal)
-            }
-            
-            // 尝试获取数字化日期时间
-            if let dateTimeDigitized = exifDict[kCGImagePropertyExifDateTimeDigitized as String] as? String {
-                print("找到EXIF数字化日期: \(dateTimeDigitized)")
-                return formatExifDate(dateTimeDigitized)
-            }
-            
-            // 尝试获取其他可能的日期字段
-            for (key, value) in exifDict {
-                print("EXIF [\(key)]: \(value)")
-                if key.lowercased().contains("date") || key.lowercased().contains("time"),
-                   let dateString = value as? String {
-                    print("找到EXIF其他日期字段 \(key): \(dateString)")
-                    if let formattedDate = formatExifDate(dateString) {
-                        return formattedDate
-                    }
-                }
-            }
-        }
-        
-        // 2. 尝试获取TIFF字典中的日期时间
-        if let tiffDict = metadata[kCGImagePropertyTIFFDictionary as String] as? [String: Any] {
-            print("找到TIFF字典: \(tiffDict.keys)")
-            
-            if let dateTime = tiffDict[kCGImagePropertyTIFFDateTime as String] as? String {
-                print("找到TIFF日期: \(dateTime)")
-                return formatExifDate(dateTime)
-            }
-            
-            // 尝试其他可能的TIFF日期字段
-            for (key, value) in tiffDict {
-                print("TIFF [\(key)]: \(value)")
-                if key.lowercased().contains("date") || key.lowercased().contains("time"),
-                   let dateString = value as? String {
-                    print("找到TIFF其他日期字段 \(key): \(dateString)")
-                    if let formattedDate = formatExifDate(dateString) {
-                        return formattedDate
-                    }
-                }
-            }
-        }
-        
-        // 3. 尝试获取GPS字典中的日期时间
-        if let gpsDict = metadata[kCGImagePropertyGPSDictionary as String] as? [String: Any] {
-            print("找到GPS字典: \(gpsDict.keys)")
-            
-            if let gpsDateStamp = gpsDict[kCGImagePropertyGPSDateStamp as String] as? String {
-                print("找到GPS日期: \(gpsDateStamp)")
-                return formatExifDate(gpsDateStamp)
-            }
-            
-            // 检查GPS字典中的所有字段
-            for (key, value) in gpsDict {
-                print("GPS [\(key)]: \(value)")
-                if key.lowercased().contains("date") || key.lowercased().contains("time"),
-                   let dateString = value as? String {
-                    print("找到GPS其他日期字段 \(key): \(dateString)")
-                    if let formattedDate = formatExifDate(dateString) {
-                        return formattedDate
-                    }
-                }
-            }
-        }
-        
-        // 4. 尝试获取IPTC字典中的创建日期
-        if let iptcDict = metadata[kCGImagePropertyIPTCDictionary as String] as? [String: Any] {
-            print("找到IPTC字典: \(iptcDict.keys)")
-            
-            // 使用定义的常量
-            if let creationDate = iptcDict[kCGImagePropertyIPTCCreationDate as String] as? String {
-                print("找到IPTC创建日期: \(creationDate)")
-                return formatExifDate(creationDate)
-            }
-            
-            // 检查IPTC字典中的所有字段
-            for (key, value) in iptcDict {
-                print("IPTC [\(key)]: \(value)")
-                if key.lowercased().contains("date") || key.lowercased().contains("time"),
-                   let dateString = value as? String {
-                    print("找到IPTC其他日期字段 \(key): \(dateString)")
-                    if let formattedDate = formatExifDate(dateString) {
-                        return formattedDate
-                    }
-                }
-            }
-        }
-        
-        // 5. 尝试获取PNG、JFIF或其他格式特有的日期
-        for (key, value) in metadata {
-            if key.lowercased().contains("date") || key.lowercased().contains("time"),
-               let dateString = value as? String {
-                print("找到顶层日期字段 \(key): \(dateString)")
-                if let formattedDate = formatExifDate(dateString) {
-                    return formattedDate
-                }
-            }
-            
-            // 检查嵌套字典
-            if let dict = value as? [String: Any] {
-                for (nestedKey, nestedValue) in dict {
-                    if nestedKey.lowercased().contains("date") || nestedKey.lowercased().contains("time") {
-                        print("找到嵌套日期字段 \(key).\(nestedKey): \(nestedValue)")
-                        if let dateString = nestedValue as? String, let formattedDate = formatExifDate(dateString) {
-                            return formattedDate
-                        } else if let dateNumber = nestedValue as? NSNumber {
-                            // 处理数字格式的日期（可能是时间戳）
-                            let dateFormatter = DateFormatter()
-                            dateFormatter.dateFormat = "yyyy-MM-dd"
-                            let date = Date(timeIntervalSince1970: dateNumber.doubleValue)
-                            print("从数字时间戳转换日期: \(dateFormatter.string(from: date))")
-                            return dateFormatter.string(from: date)
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 6. 检查是否有特殊的日期属性
-        let specialDateKeys = ["DateTimeOriginal", "DateTime", "CreationDate", "ModificationDate"]
-        for key in specialDateKeys {
-            if let dateValue = metadata[key] as? String {
-                print("找到特殊日期键 \(key): \(dateValue)")
-                if let formattedDate = formatExifDate(dateValue) {
-                    return formattedDate
-                }
-            }
-        }
-        
-        print("未找到任何日期信息")
-        return nil
-    }
-    
-    // 格式化EXIF日期字符串
-    private func formatExifDate(_ dateString: String) -> String? {
-        print("尝试格式化日期字符串: \(dateString)")
-        
-        // 尝试多种可能的EXIF日期格式
-        let possibleFormats = [
-            "yyyy:MM:dd HH:mm:ss",  // 标准EXIF格式
-            "yyyy-MM-dd HH:mm:ss",  // 连字符格式
-            "yyyy/MM/dd HH:mm:ss",  // 斜杠格式
-            "yyyy年MM月dd日 EEEE HH:mm", // 中文格式带星期和时间
-            "yyyy年MM月dd日 HH:mm"      // 中文格式带时间不带星期
-        ]
-        
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN") // 设置中文区域以支持中文星期
-        
-        // 尝试每一种可能的格式
-        for format in possibleFormats {
-            formatter.dateFormat = format
-            if let date = formatter.date(from: dateString) {
-                // 成功解析，返回标准格式
-                print("成功使用格式 \(format) 解析日期")
-                formatter.dateFormat = "yyyy-MM-dd"
-                return formatter.string(from: date)
-            }
-        }
-        
-        // 检查是否包含年月日的中文格式，不管是否有星期和时间
-        // 首先尝试直接匹配完整的中文日期格式
-        if dateString.contains("年") && dateString.contains("月") && dateString.contains("日") {
-            print("检测到中文日期格式")
-            
-            // 匹配类似"2025年5月16日"的格式，忽略后面可能的星期和时间
-            let yearPattern = "(\\d{4})年(\\d{1,2})月(\\d{1,2})日"
-            if let regex = try? NSRegularExpression(pattern: yearPattern, options: []),
-               let match = regex.firstMatch(in: dateString, options: [], range: NSRange(location: 0, length: dateString.count)) {
-                
-                let nsString = dateString as NSString
-                let yearRange = match.range(at: 1)
-                let monthRange = match.range(at: 2)
-                let dayRange = match.range(at: 3)
-                
-                if yearRange.location != NSNotFound && monthRange.location != NSNotFound && dayRange.location != NSNotFound {
-                    let year = nsString.substring(with: yearRange)
-                    let month = nsString.substring(with: monthRange)
-                    let day = nsString.substring(with: dayRange)
-                    
-                    let formattedDate = "\(year)-\(month.count == 1 ? "0\(month)" : month)-\(day.count == 1 ? "0\(day)" : day)"
-                    print("成功从中文日期提取: \(formattedDate)")
-                    return formattedDate
-                }
-            }
-        }
-        
-        // 尝试提取任何看起来像日期的部分
-        // 匹配四位数年份
-        let yearOnlyPattern = "(\\d{4})"
-        if let regex = try? NSRegularExpression(pattern: yearOnlyPattern, options: []),
-           let match = regex.firstMatch(in: dateString, options: [], range: NSRange(location: 0, length: dateString.count)) {
-            
-            let nsString = dateString as NSString
-            let yearRange = match.range(at: 1)
-            
-            if yearRange.location != NSNotFound {
-                let year = nsString.substring(with: yearRange)
-                print("只能提取到年份: \(year)，使用当前月日")
-                
-                // 使用当前的月和日
-                let currentDate = Date()
-                let formatter = DateFormatter()
-                formatter.dateFormat = "MM-dd"
-                let monthDay = formatter.string(from: currentDate)
-                
-                return "\(year)-\(monthDay)"
-            }
-        }
-        
-        // 所有尝试都失败
-        print("无法解析日期格式: \(dateString)")
         return nil
     }
 }
