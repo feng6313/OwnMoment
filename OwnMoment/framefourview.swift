@@ -1,5 +1,5 @@
 //
-//  FrameoneView.swift
+//  FramefourView.swift
 //  OwnMoment
 //
 //  Created by feng on 2025/5/15.
@@ -12,7 +12,7 @@ import UIKit
 import AppKit
 #endif
 
-struct FrameoneView: View {
+struct FramefourView: View {
     @Environment(\.presentationMode) var presentationMode
     var selectedImage: UIImage?
     var frameIndex: Int? // 标识是从哪个相框点击进入的
@@ -48,9 +48,9 @@ struct FrameoneView: View {
     // 添加颜色相关的状态变量
     @State private var frameColor: Color = .white // 边框颜色
     @State private var titleTextColor: Color = Color("#1C1E22") // 标题文字颜色
-@State private var dateTextColor: Color = Color("#F56E00") // 时间颜色
-@State private var locationTextColor: Color = Color("#1C1E22") // 地点文字颜色
-@State private var iconColor: Color = Color("#1C1E22") // 图标颜色
+    @State private var dateTextColor: Color = Color("#F56E00") // 时间颜色
+    @State private var locationTextColor: Color = Color("#1C1E22") // 地点文字颜色
+    @State private var iconColor: Color = Color("#1C1E22") // 图标颜色
     @State private var selectedColorOption = 0 // 当前选中的颜色选项（下方矩形框）
     @State private var selectedSlideOption = 0 // 当前选中的滑动选项（上方滑动按钮）
     @State private var showColorControls: Bool = true // 控制圆形色块和滑动按钮的显示
@@ -198,7 +198,7 @@ struct FrameoneView: View {
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(truncateText(memoryText, maxLength: 15))
+                        Text(truncateText(memoryText, maxLength: 35))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(titleTextColor)
                         
@@ -382,14 +382,12 @@ struct FrameoneView: View {
                                         .foregroundColor(Color.gray)
                                 }
                                 .padding(.horizontal, 16)
-                                .frame(height: 56)
+                                .frame(height: 50)
                             }
                             
-                            // 分隔线
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(height: 0.5)
-                                .padding(.leading, 50)
+                            Divider()
+                                .background(Color.gray.opacity(0.3))
+                                .padding(.horizontal, 16)
                             
                             // 地点选项
                             Button(action: {
@@ -499,296 +497,16 @@ struct FrameoneView: View {
 
 // Color扩展已移至Extensions.swift文件中
 
-struct FrameoneView_Previews: PreviewProvider {
+struct FramefourView_Previews: PreviewProvider {
     static var previews: some View {
         // 为了预览，我们需要一个NavigationView上下文
         NavigationView {
-            FrameoneView(selectedImage: nil, frameIndex: 0)
+            FramefourView(selectedImage: nil, frameIndex: 3)
         }
     }
 }
 
-// 为SlideSelector添加预览
-struct SlideSelector_Previews: PreviewProvider {
-    static var previews: some View {
-        SlideSelector(selectedOption: .constant(0))
-    }
-}
-
-// 为ColorSelector添加预览
-struct ColorSelector_Previews: PreviewProvider {
-    static var previews: some View {
-        ColorSelector(
-            selectedOption: .constant(0),
-            frameColor: .constant(.white),
-            titleTextColor: .constant(.black),
-            dateTextColor: .constant(.orange),
-            locationTextColor: .constant(.black),
-            iconColor: .constant(.black)
-        )
-    }
-}
-
-// 图标选项按钮组件
-struct IconOptionButton: View {
-    let imageName: String
-    let title: String
-    var isSelected: Bool = false
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 5) {
-                Image(imageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 20, height: 20)
-                
-                Text(title)
-                    .font(.system(size: 12))
-                    .foregroundColor(.white)
-            }
-        }
-    }
-}
-
-// 为IconOptionButton添加预览
-struct IconOptionButton_Previews: PreviewProvider {
-    static var previews: some View {
-        HStack(spacing: 40) {
-            IconOptionButton(imageName: "color", title: "颜色", isSelected: true) {}
-            IconOptionButton(imageName: "word", title: "文字") {}
-            IconOptionButton(imageName: "more", title: "更多") {}
-        }
-        .padding()
-        .background(Color.black)
-        .previewLayout(.sizeThatFits)
-    }
-}
-
-// 滑动选择器组件
-struct SlideSelector: View {
-    @Binding var selectedOption: Int
-    @State private var dragOffset: CGFloat = 0
-    
-    // 添加一个初始化方法，用于预览
-    init(selectedOption: Binding<Int>) {
-        self._selectedOption = selectedOption
-    }
-    
-    private let options = ["边框", "文字", "时间", "地点", "图标"]
-    private let selectorWidth: CGFloat = 330
-    private let selectorHeight: CGFloat = 34
-    private let optionWidth: CGFloat = 65
-    private let optionSpacing: CGFloat = 0
-    
-    var body: some View {
-        ZStack(alignment: .leading) {
-            // 黑色背景矩形
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color("#2C2C2E"))
-                .frame(width: selectorWidth, height: selectorHeight)
-            
-            // 灰色选择器
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color("#6B6C70"))
-                .frame(width: optionWidth, height: selectorHeight - 4)
-                .offset(x: 2 + CGFloat(selectedOption) * (optionWidth + optionSpacing) + dragOffset, y: 0)
-                .animation(.spring(), value: selectedOption)
-                .animation(.spring(), value: dragOffset)
-            
-            // 选项文本
-            HStack(spacing: optionSpacing) {
-                ForEach(0..<options.count, id: \.self) { index in
-                    Text(options[index])
-                        .font(.system(size: 12))
-                        .foregroundColor(.white)
-                        .opacity(index == selectedOption ? 1.0 : 0.9)
-                        .frame(width: optionWidth, height: selectorHeight)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedOption = index
-                            dragOffset = 0
-                        }
-                }
-            }
-        }
-        .padding(.horizontal, 2)
-        .frame(width: selectorWidth, height: selectorHeight)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    let dragAmount = value.translation.width
-                    let optionFullWidth = optionWidth + optionSpacing
-                    
-                    // 限制拖动范围
-                    if (CGFloat(selectedOption) * optionFullWidth + dragAmount < 0) {
-                        dragOffset = -CGFloat(selectedOption) * optionFullWidth
-                    } else if (CGFloat(selectedOption) * optionFullWidth + dragAmount > CGFloat(options.count - 1) * optionFullWidth) {
-                        dragOffset = CGFloat(options.count - 1 - selectedOption) * optionFullWidth
-                    } else {
-                        dragOffset = dragAmount
-                    }
-                }
-                .onEnded { value in
-                    let dragAmount = value.translation.width
-                    let optionFullWidth = optionWidth + optionSpacing
-                    
-                    // 计算拖动后应该选择哪个选项
-                    if abs(dragAmount) > optionFullWidth / 2 {
-                        if dragAmount > 0 && selectedOption < options.count - 1 {
-                            selectedOption += 1
-                        } else if dragAmount < 0 && selectedOption > 0 {
-                            selectedOption -= 1
-                        }
-                    }
-                    
-                    dragOffset = 0
-                }
-        )
-    }
-}
-
-// 颜色选择器组件
-struct ColorSelector: View {
-    // 颜色数组，按照用户提供的顺序
-    private let colors: [[String]] = [
-        ["#FFFFFF", "#1C1E22", "#F4E6E7", "#F2EEE3", "#F56E00", "#CEC3B3"],
-        ["#E5ECDB", "#C3D3DB", "#A98069", "#69733E", "#834643", "#255B85"]
-    ]
-    
-    // 为每个选项保存选中的颜色索引
-    @State private var selectedIndices: [(row: Int, column: Int)] = [
-        (0, 0), // 边框 - 默认白色
-        (0, 1), // 文字 - 默认黑色
-        (0, 4), // 时间 - 默认橙色
-        (0, 1), // 地点 - 默认黑色
-        (0, 1)  // 图标 - 默认黑色
-    ]
-    
-    // 颜色块大小和间距
-    private let colorSize: CGFloat = 26
-    private let verticalSpacing: CGFloat = 12
-    private let containerWidth: CGFloat = 330 // 与滑动选择器宽度一致
-    
-    // 添加绑定属性，用于接收当前选择的选项和更新颜色
-    @Binding var selectedOption: Int
-    @Binding var frameColor: Color
-    @Binding var titleTextColor: Color
-    @Binding var dateTextColor: Color
-    @Binding var locationTextColor: Color
-    @Binding var iconColor: Color
-    
-    // 添加初始化方法
-    init(selectedOption: Binding<Int>, frameColor: Binding<Color>, titleTextColor: Binding<Color>, 
-         dateTextColor: Binding<Color>, locationTextColor: Binding<Color>, iconColor: Binding<Color>) {
-        self._selectedOption = selectedOption
-        self._frameColor = frameColor
-        self._titleTextColor = titleTextColor
-        self._dateTextColor = dateTextColor
-        self._locationTextColor = locationTextColor
-        self._iconColor = iconColor
-    }
-    
-    // 查找颜色在colors数组中的索引
-    private func findColorIndex(for targetColor: Color) -> (row: Int, column: Int) {
-        // 遍历颜色数组查找最接近的颜色
-        for row in 0..<colors.count {
-            for column in 0..<colors[row].count {
-                let colorHex = colors[row][column]
-                if Color(colorHex) == targetColor {
-                    return (row, column)
-                }
-            }
-        }
-        // 如果没找到完全匹配的，返回默认值
-        return (0, 0)
-    }
-    
-    // 更新所有选项的选中颜色索引
-    private func updateSelectedIndices() {
-        // 更新每个选项的选中颜色索引
-        selectedIndices[0] = findColorIndex(for: frameColor)
-        selectedIndices[1] = findColorIndex(for: titleTextColor)
-        selectedIndices[2] = findColorIndex(for: dateTextColor)
-        selectedIndices[3] = findColorIndex(for: locationTextColor)
-        selectedIndices[4] = findColorIndex(for: iconColor)
-    }
-    
-    var body: some View {
-        VStack(spacing: verticalSpacing) {
-            // 第一行颜色
-            HStack {
-                ForEach(0..<6) { column in
-                    colorCircle(row: 0, column: column)
-                }
-            }
-            
-            // 第二行颜色
-            HStack {
-                ForEach(0..<6) { column in
-                    colorCircle(row: 1, column: column)
-                }
-            }
-        }
-        .frame(width: containerWidth)
-        .onAppear {
-            // 在视图出现时，根据当前颜色值更新selectedIndices
-            updateSelectedIndices()
-        }
-        .onChange(of: selectedOption) { oldValue, newValue in
-            // 当选项改变时，确保UI反映正确的选中状态
-        }
-    }
-    
-    // 创建单个颜色圆圈
-    private func colorCircle(row: Int, column: Int) -> some View {
-        // 检查当前选项的选中状态
-        let currentSelection = selectedIndices[selectedOption]
-        let isSelected = (currentSelection.row == row && currentSelection.column == column)
-        let colorHex = colors[row][column]
-        let color = Color(colorHex)
-        
-        return ZStack {
-            // 颜色圆圈 - 移除默认边框
-            Circle()
-                .fill(color)
-                .frame(width: colorSize, height: colorSize)
-            
-            // 选中状态 - 3点白色内描边，只有选中时才显示
-            if isSelected {
-                Circle()
-                    .inset(by: 1.5) // 向内缩进1.5点，确保是内描边
-                    .stroke(Color.white, lineWidth: 3)
-                    .frame(width: colorSize, height: colorSize)
-            }
-        }
-        .frame(maxWidth: .infinity) // 均分容器宽度
-        .onTapGesture {
-            // 更新当前选项的选中颜色索引
-            selectedIndices[selectedOption] = (row, column)
-            
-            // 根据当前SlideSelector的选择更新对应的颜色
-            let newColor = color
-            switch selectedOption {
-            case 0: // 边框
-                frameColor = newColor
-            case 1: // 文字
-                titleTextColor = newColor
-            case 2: // 时间
-                dateTextColor = newColor
-            case 3: // 地点
-                locationTextColor = newColor
-            case 4: // 图标
-                iconColor = newColor
-            default:
-                break
-            }
-        }
-    }
-}
-
-extension FrameoneView {
+extension FramefourView {
     // 保存图片到相册
     func saveImageToPhotoAlbum() {
         #if canImport(UIKit)
@@ -798,118 +516,135 @@ extension FrameoneView {
         switch status {
         case .authorized, .limited:
             // 已授权，继续保存图片
-            proceedWithSavingImage()
-        case .notDetermined:
-            // 请求授权
-            PHPhotoLibrary.requestAuthorization { [self] newStatus in
-                DispatchQueue.main.async {
-                    if newStatus == .authorized || newStatus == .limited {
-                        self.proceedWithSavingImage()
-                    } else {
-                        self.showPermissionDeniedAlert()
-                    }
-                }
-            }
-        case .denied, .restricted:
-            // 显示权限被拒绝的提示
-            self.showPermissionDeniedAlert()
-        @unknown default:
-            // 处理未来可能添加的新状态
-            self.showPermissionDeniedAlert()
-        }
-        #elseif canImport(AppKit)
-        // 在macOS上实现保存功能
-        proceedWithSavingImage()
-        #endif
-    }
-    
-    // 实际保存图片的方法
-    private func proceedWithSavingImage() {
-        #if canImport(UIKit)
-        if #available(iOS 16.0, *) {
-            // 创建一个与白色背景大小相同的上下文
-            let renderer = ImageRenderer(content: 
-                ZStack {
-                    // 背景，使用动态尺寸
-                    Rectangle()
-                        .fill(frameColor)
-                        .frame(width: frameWidth, height: frameHeight)
-                    
-                    // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
-                    ZStack {
-                        if let image = selectedImage {
-                            ZStack(alignment: .bottomTrailing) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill() // 使用fill而不是fit，确保完全填充
-                                    .frame(width: displayWidth, height: displayHeight)
-                                    // 应用缩放效果
-                                    .scaleEffect(currentScale)
-                                    // 应用位置偏移，使用最新的位置计算
-                                    .offset(lastValidPosition)
-                                    .clipped() // 隐藏超出显示区域的部分
-                                
-                                // 添加日期显示
-                                if showDate {
-                                    Text(getImageDate(image) ?? "未知日期")
-                                        .font(.custom("PixelMplus12-Regular", size: 18))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(dateTextColor)
-                                        .padding([.bottom, .trailing], 10)
-                                }
-                            }
-                        }
-                    }
-                    .frame(width: displayWidth, height: displayHeight)
-                    .offset(y: -42) // 向上移动42点
-                    
-                    // 添加图片下方的文字信息
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(truncateText(memoryText, maxLength: 15))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(titleTextColor)
-                        
-                        if showLocation {
-                            HStack(spacing: 2) {
-                                Image("map_s")
-                                    .renderingMode(.template)
-                                    .resizable()
-                                    .frame(width: 14, height: 14)
-                                    .foregroundColor(iconColor)
-                                
-                                Text(getLocationText())
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(locationTextColor)
-                            }
-                        }
-                    }
-                    .padding(.top, 350) // 向下移动350点，与设置界面保持一致
-                    .padding(.leading, 0) // 移除左边距
-                    .frame(width: displayWidth, alignment: .leading) // 与显示区宽度一致
-                }
-                .frame(width: frameWidth, height: frameHeight)
-            )
-            
-            // 配置渲染器 - 根据原始图片尺寸调整缩放因子
             if let image = selectedImage {
-                // 计算适当的缩放因子，使输出图片尽可能接近原始尺寸
-                let originalWidth = image.size.width
-                let originalHeight = image.size.height
-                let scaleFactorWidth = originalWidth / frameWidth
-                let scaleFactorHeight = originalHeight / frameHeight
-                let scaleFactor = max(2.0, min(scaleFactorWidth, scaleFactorHeight, 4.0)) // 限制在2.0-4.0之间
+                // 创建一个UIView来渲染整个视图
+                let renderer = UIGraphicsImageRenderer(size: CGSize(width: frameWidth, height: frameHeight))
                 
-                renderer.scale = scaleFactor
-            } else {
-                renderer.scale = 2.0 // 默认缩放因子
-            }
-            
-            // 获取渲染后的图片
-            if let uiImage = renderer.uiImage {
-                // 保存到相册
+                let renderedImage = renderer.image { context in
+                    // 绘制背景
+                    UIColor(frameColor).setFill()
+                    context.fill(CGRect(x: 0, y: 0, width: frameWidth, height: frameHeight))
+                    
+                    // 绘制图片显示区域背景
+                    UIColor.white.setFill()
+                    context.fill(CGRect(x: (frameWidth - displayWidth) / 2, y: (frameHeight - displayHeight) / 2 - 42, width: displayWidth, height: displayHeight))
+                    
+                    // 计算图片在显示区域内的实际尺寸和位置
+                    let imageSize = image.size
+                    let imageAspectRatio = imageSize.width / imageSize.height
+                    let displayAreaAspectRatio = displayWidth / displayHeight
+                    
+                    var scaledWidth: CGFloat
+                    var scaledHeight: CGFloat
+                    
+                    if imageAspectRatio > displayAreaAspectRatio {
+                        // 图片较宽，高度适应显示区域
+                        scaledHeight = displayHeight
+                        scaledWidth = scaledHeight * imageAspectRatio
+                    } else {
+                        // 图片较高，宽度适应显示区域
+                        scaledWidth = displayWidth
+                        scaledHeight = scaledWidth / imageAspectRatio
+                    }
+                    
+                    // 应用用户的缩放
+                    scaledWidth *= currentScale
+                    scaledHeight *= currentScale
+                    
+                    // 计算图片在显示区域内的位置
+                    let centerX = (frameWidth - displayWidth) / 2 + displayWidth / 2
+                    let centerY = (frameHeight - displayHeight) / 2 - 42 + displayHeight / 2
+                    
+                    // 应用用户的位置偏移
+                    let offsetX = lastValidPosition.width
+                    let offsetY = lastValidPosition.height
+                    
+                    // 绘制图片
+                    let drawRect = CGRect(
+                        x: centerX - scaledWidth / 2 + offsetX,
+                        y: centerY - scaledHeight / 2 + offsetY,
+                        width: scaledWidth,
+                        height: scaledHeight
+                    )
+                    
+                    // 创建一个裁剪路径，确保图片不会超出显示区域
+                    let clipRect = CGRect(
+                        x: (frameWidth - displayWidth) / 2,
+                        y: (frameHeight - displayHeight) / 2 - 42,
+                        width: displayWidth,
+                        height: displayHeight
+                    )
+                    
+                    context.cgContext.saveGState()
+                    context.cgContext.addRect(clipRect)
+                    context.cgContext.clip()
+                    
+                    image.draw(in: drawRect)
+                    
+                    context.cgContext.restoreGState()
+                    
+                    // 绘制日期
+                    if showDate {
+                        let dateText = getImageDate(image) ?? "未知日期"
+                        let dateAttributes: [NSAttributedString.Key: Any] = [
+                            .font: UIFont(name: "PixelMplus12-Regular", size: 18) ?? UIFont.systemFont(ofSize: 18, weight: .semibold),
+                            .foregroundColor: UIColor(dateTextColor)
+                        ]
+                        
+                        let dateSize = (dateText as NSString).size(withAttributes: dateAttributes)
+                        let dateX = (frameWidth - displayWidth) / 2 + displayWidth - dateSize.width - 10
+                        let dateY = (frameHeight - displayHeight) / 2 - 42 + displayHeight - dateSize.height - 10
+                        
+                        (dateText as NSString).draw(at: CGPoint(x: dateX, y: dateY), withAttributes: dateAttributes)
+                    }
+                    
+                    // 绘制标题文字
+                    let titleText = truncateText(memoryText, maxLength: 35)
+                    let titleAttributes: [NSAttributedString.Key: Any] = [
+                        .font: UIFont.systemFont(ofSize: 14, weight: .medium),
+                        .foregroundColor: UIColor(titleTextColor)
+                    ]
+                    
+                    let titleX = (frameWidth - displayWidth) / 2
+                    let titleY = (frameHeight - displayHeight) / 2 - 42 + displayHeight + 20
+                    
+                    (titleText as NSString).draw(at: CGPoint(x: titleX, y: titleY), withAttributes: titleAttributes)
+                    
+                    // 绘制位置信息
+                    if showLocation {
+                        let locationText = getLocationText()
+                        let locationAttributes: [NSAttributedString.Key: Any] = [
+                            .font: UIFont.systemFont(ofSize: 12, weight: .regular),
+                            .foregroundColor: UIColor(locationTextColor)
+                        ]
+                        
+                        // 绘制位置图标
+                        if let mapImage = UIImage(named: "map_s")?.withTintColor(UIColor(iconColor)) {
+                            let iconSize: CGFloat = 14
+                            let iconX = titleX
+                            let iconY = titleY + 20
+                            
+                            mapImage.draw(in: CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize))
+                            
+                            // 绘制位置文字
+                            let locationX = iconX + iconSize + 2
+                            let locationY = iconY + (iconSize - 12) / 2 // 垂直居中
+                            
+                            (locationText as NSString).draw(at: CGPoint(x: locationX, y: locationY), withAttributes: locationAttributes)
+                        } else {
+                            // 如果图标加载失败，只绘制文字
+                            let locationX = titleX
+                            let locationY = titleY + 20
+                            
+                            (locationText as NSString).draw(at: CGPoint(x: locationX, y: locationY), withAttributes: locationAttributes)
+                        }
+                    }
+                }
+                
+                // 保存渲染后的图片到相册
                 // 使用Photos框架保存图片
                 PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.creationRequestForAsset(from: uiImage)
+                    PHAssetChangeRequest.creationRequestForAsset(from: renderedImage)
                 } completionHandler: { [self] success, error in
                     DispatchQueue.main.async {
                         if success {
@@ -924,80 +659,95 @@ extension FrameoneView {
                 }
             } else {
                 saveAlertTitle = "保存失败"
-                saveAlertMessage = "无法生成图片"
+                saveAlertMessage = "未选择图片"
                 showSaveAlert = true
             }
-        } else {
-            // iOS 15兼容处理
-            saveAlertTitle = "功能不可用"
-            saveAlertMessage = "此功能需要iOS 16.0或更高版本"
+        case .notDetermined:
+            // 请求权限
+            PHPhotoLibrary.requestAuthorization { status in
+                DispatchQueue.main.async {
+                    if status == .authorized || status == .limited {
+                        self.saveImageToPhotoAlbum() // 递归调用
+                    } else {
+                        self.showPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            // 显示权限被拒绝的提示
+            showPermissionDeniedAlert()
+        @unknown default:
+            saveAlertTitle = "保存失败"
+            saveAlertMessage = "未知错误"
             showSaveAlert = true
         }
         #elseif canImport(AppKit)
         // macOS实现
         if #available(macOS 13.0, *) {
-            // 创建一个与白色背景大小相同的上下文
-            let renderer = ImageRenderer(content: 
-                ZStack {
-                    // 背景，使用动态尺寸
-                    Rectangle()
-                        .fill(frameColor)
-                        .frame(width: frameWidth, height: frameHeight)
-                    
-                    // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
-                    ZStack {
-                        if let image = selectedImage {
-                            ZStack(alignment: .bottomTrailing) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill() // 使用fill而不是fit，确保完全填充
-                                    .scaleEffect(currentScale)
-                                    // 应用位置偏移，使用最新的位置计算
-                                    .offset(lastValidPosition)
-                                    .clipped() // 隐藏超出显示区域的部分
-                                
-                                // 添加日期显示
-                                if showDate {
-                                    Text(getImageDate(image) ?? "未知日期")
-                                        .font(.custom("PixelMplus12-Regular", size: 18))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(dateTextColor)
-                                        .padding([.bottom, .trailing], 10)
-                                }
-                            }
-                        }
-                    }
+            // 创建一个NSView来渲染整个视图
+            let renderer = ImageRenderer(content: ZStack {
+                // 背景
+                Rectangle()
+                    .fill(frameColor)
+                    .frame(width: frameWidth, height: frameHeight)
+                
+                // 图片显示区域背景
+                Rectangle()
+                    .fill(Color.white)
                     .frame(width: displayWidth, height: displayHeight)
-                    .offset(y: -42) // 向上移动42点
+                    .offset(y: -42)
+                
+                // 显示选择的图片
+                if let image = selectedImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: displayAreaSize, height: displayAreaSize)
+                        .scaleEffect(currentScale)
+                        .offset(lastValidPosition)
+                        .offset(y: -42)
+                        .clipped()
+                }
+                
+                // 日期显示
+                if showDate, let image = selectedImage {
+                    Text(getImageDate(image) ?? "未知日期")
+                        .font(.custom("PixelMplus12-Regular", size: 18))
+                        .fontWeight(.semibold)
+                        .foregroundColor(dateTextColor)
+                        .padding([.bottom, .trailing], 10)
+                        .frame(width: displayWidth, height: displayHeight, alignment: .bottomTrailing)
+                        .offset(y: -42)
+                }
+                
+                // 标题文字
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(truncateText(memoryText, maxLength: 35))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(titleTextColor)
                     
-                    // 添加图片下方的文字信息
-                    VStack(alignment: .leading, spacing: 2) { 
-                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 15))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(titleTextColor)
-                        
-                        if showLocation {
-                            HStack(spacing: 4) {
-                                Image("map_s")
-                                    .renderingMode(.template)
-                                    .resizable()
-                                    .frame(width: 14, height: 14)
-                                    .foregroundColor(iconColor)
-                                
-                                Text(getLocationText())
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(locationTextColor)
-                            }
+                    if showLocation {
+                        HStack(spacing: 2) {
+                            Image("map_s")
+                                .renderingMode(.template)
+                                .resizable()
+                                .frame(width: 14, height: 14)
+                                .foregroundColor(iconColor)
+                            
+                            Text(getLocationText())
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundColor(locationTextColor)
                         }
                     }
-                    .padding(.top, 350) // 向下移动350点，与设置界面保持一致
-                    .padding(.leading, 0) // 移除左边距
-                    .frame(width: displayWidth, alignment: .leading) // 与显示区宽度一致
                 }
-                .frame(width: frameWidth, height: frameHeight)
-            )
+                .padding(.top, 350)
+                .padding(.leading, 0)
+                .frame(width: 339, alignment: .leading)
+            })
             
-            // 配置渲染器 - 根据原始图片尺寸调整缩放因子
+            // 设置渲染尺寸和缩放因子
+            renderer.proposedSize = ProposedViewSize(width: frameWidth, height: frameHeight)
+            
             if let image = selectedImage {
                 // 计算适当的缩放因子，使输出图片尽可能接近原始尺寸
                 let originalWidth = image.size.width
@@ -1031,7 +781,11 @@ extension FrameoneView {
         #endif
     }
     
-    // 不再需要这个回调方法，因为我们使用了Photos框架的API
+    // 这个回调方法已被Photos框架的API替代
+    #if canImport(UIKit)
+    // 注意：移除了@objc标记，因为它不能用于结构体
+    // 如果需要此方法，应将整个视图改为类而不是结构体
+    #endif
     
     // 显示权限被拒绝的提示
     private func showPermissionDeniedAlert() {
@@ -1041,7 +795,7 @@ extension FrameoneView {
     }
 }
 
-extension FrameoneView {
+extension FramefourView {
     // 计算适当的尺寸
     private func calculateSizes() {
         guard let image = selectedImage else { return }
@@ -1202,5 +956,3 @@ extension FrameoneView {
         return nil
     }
 }
-
-// ... existing code ...

@@ -98,8 +98,8 @@ struct RememberView: View {
                 }
                 .foregroundColor(.white),
                 trailing: Button("添加") {
-                    if inputText.count > 15 {
-                        memoryText = String(inputText.prefix(15))
+                    if inputText.count > 35 {
+                        memoryText = String(inputText.prefix(35))
                     } else {
                         memoryText = inputText
                     }
