@@ -58,12 +58,20 @@ struct FramefiveView: View {
     // 添加动态尺寸变量
     @State private var frameWidth: CGFloat = 371
     @State private var frameHeight: CGFloat = 455
-    @State private var displayWidth: CGFloat = 339
-    @State private var displayHeight: CGFloat = 339
+    @State private var displayWidth: CGFloat = 371
+    @State private var displayHeight: CGFloat = 355
     
-    // 蓝色显示区域的尺寸常量 - 将其改为计算属性
+    // 显示区域的尺寸常量 - 将其改为计算属性
+    private var displayAreaWidth: CGFloat {
+        return displayWidth
+    }
+    
+    private var displayAreaHeight: CGFloat {
+        return displayHeight
+    }
+    
     private var displayAreaSize: CGFloat {
-        return displayWidth // 正方形区域，宽高相等
+        return displayWidth // 使用宽度作为基准
     }
 
     var body: some View {
@@ -89,7 +97,7 @@ struct FramefiveView: View {
                                 .font(.system(size: 16))
                                 .foregroundColor(Color.gray)
                         }
-                        .frame(width: 339, height: 44)
+                        .frame(width: 371, height: 44)
                         .offset(y: 455/2 + 85) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上85点
                         .zIndex(1) // 确保按钮在最上层
                         .allowsHitTesting(true) // 确保按钮可以接收点击事件
@@ -99,16 +107,16 @@ struct FramefiveView: View {
                     ZStack {
                         Rectangle()
                             .fill(Color.white) // 暂用蓝色填充
-                            .frame(width: 339, height: 339)
+                            .frame(width: 371, height: 355)
                         
                         // 显示选择的图片
                         if let image = selectedImage {
                             
-                            ZStack(alignment: .bottomTrailing) {
+                            ZStack(alignment: .topTrailing) {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill() // 使用fill而不是fit，确保完全填充
-                                    .frame(width: displayAreaSize, height: displayAreaSize)
+                                    .frame(width: displayAreaWidth, height: displayAreaHeight)
                                     // 应用缩放效果
                                     .scaleEffect(currentScale)
                                     // 应用位置偏移，但限制在显示区域内
@@ -180,13 +188,14 @@ struct FramefiveView: View {
                                         updateCachedImageBounds(for: image)
                                     }
                                 
-                                // 添加日期显示
+                                // 添加日期显示在右上角
                                 if showDate {
                                     Text(getImageDate(image) ?? "未知日期")
                                         .font(.custom("PixelMplus12-Regular", size: 18))
                                         .fontWeight(.semibold)
                                         .foregroundColor(dateTextColor)
-                                        .padding([.bottom, .trailing], 10)
+                                        .padding(.trailing, 12)
+                                        .padding(.top, 12)
                                 }
                             }
                         } else {
@@ -194,13 +203,17 @@ struct FramefiveView: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    .offset(y: -42) // 向上移动42点
+                    .offset(y: -50) // 向上移动50点，与白色背景顶部对齐
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(truncateText(memoryText, maxLength: 35))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(titleTextColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                                Text(line)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(titleTextColor)
+                            }
+                        }
                         
                         if showLocation {
                             HStack(spacing: 2) {
@@ -217,8 +230,8 @@ struct FramefiveView: View {
                         }
                     }
                     .padding(.top, 350) // 向下移动350点
-                    .padding(.leading, 0) // 移除左边距
-                    .frame(width: 339, alignment: .leading) // 与蓝色显示区宽度一致
+                    .padding(.leading, 16) // 向右移动16点
+                    .frame(width: 371, alignment: .leading) // 与显示区宽度一致
                     
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
@@ -368,26 +381,27 @@ struct FramefiveView: View {
                                     Image("date")
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
-                                        .frame(width: 24, height: 24)
-                                        .foregroundColor(.white)
+                                        .frame(width: 20, height: 20)
                                     
                                     Text("日期")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 14))
                                         .foregroundColor(.white)
-                                        .padding(.leading, 8)
                                     
                                     Spacer()
                                     
+                                    Text(isUsingCustomDate() ? formatDate(customDate) : (getImageDate(selectedImage) ?? "未知日期"))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                    
                                     Image(systemName: "chevron.right")
-                                        .foregroundColor(Color.gray)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
                                 }
                                 .padding(.horizontal, 16)
-                                .frame(height: 50)
+                                .frame(height: 44)
+                                .background(Color("#1C1E22"))
+                                .cornerRadius(8)
                             }
-                            
-                            Divider()
-                                .background(Color.gray.opacity(0.3))
-                                .padding(.horizontal, 16)
                             
                             // 地点选项
                             Button(action: {
@@ -397,29 +411,32 @@ struct FramefiveView: View {
                                     Image("map_b")
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
-                                        .frame(width: 24, height: 24)
-                                        .foregroundColor(.white)
+                                        .frame(width: 20, height: 20)
                                     
                                     Text("地点")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 14))
                                         .foregroundColor(.white)
-                                        .padding(.leading, 8)
                                     
                                     Spacer()
                                     
+                                    Text(getLocationText())
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                    
                                     Image(systemName: "chevron.right")
-                                        .foregroundColor(Color.gray)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
                                 }
                                 .padding(.horizontal, 16)
-                                .frame(height: 50)
+                                .frame(height: 44)
+                                .background(Color("#1C1E22"))
+                                .cornerRadius(8)
                             }
+                            .padding(.top, 8)
                         }
-                        .frame(maxWidth: .infinity)
-                        .background(Color("#2C2C2E"))
-                        .cornerRadius(10)
-                        .padding(.horizontal, 20)
-                        .frame(height: 100)
-                        .offset(y: 455/2 + 85) // 白色背景高度为455，除以2得到从中心到底部的距离，再减去选项高度和上方间距
+                        .frame(width: 343) // 设置固定宽度
+                        .offset(y: 455/2 + 85) // 白色背景下方85点的位置
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .move(edge: .bottom)),
                             removal: .opacity.combined(with: .move(edge: .bottom))
@@ -428,25 +445,19 @@ struct FramefiveView: View {
                     }
                 }
                 
-                Spacer() // 填充剩余空间
+                Spacer()
             }
         }
-        .navigationBarBackButtonHidden(true) // 隐藏默认返回按钮
-        .navigationBarTitleDisplayMode(.inline) // 确保标题居中
-        .toolbarColorScheme(.dark, for: .navigationBar) // 保持导航栏颜色风格一致
-        .toolbarBackground(Color("#0C0F14"), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .sheet(isPresented: $isRememberViewPresented) {
-            RememberView(memoryText: $memoryText)
-        }
-        .toolbar(content: {
-            // 左侧返回按钮
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
+                Button(action: {
                     presentationMode.wrappedValue.dismiss()
-                } label: {
+                }) {
                     Image(systemName: "chevron.left")
                         .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .medium))
                 }
             }
             
@@ -460,9 +471,9 @@ struct FramefiveView: View {
             // 右侧保存按钮
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    // 保存按钮的操作
-                    saveImageToPhotoAlbum()
-                }) {
+                     // 保存按钮的操作
+                     saveImageToPhotoAlbum()
+                 }) {
                     Text("保存")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
@@ -471,12 +482,7 @@ struct FramefiveView: View {
                         .cornerRadius(15)
                 }
             }
-        })
-        
-        // 关于"距离屏幕右边缘32点"：ToolbarItem的布局由系统管理，
-        // 它会自动处理与屏幕边缘的间距。
-        // 如果需要精确控制，可能需要更复杂的Toolbar布局。
-        // 此处按钮本身已按要求设置尺寸和颜色。
+        }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsView(
                 customDate: $customDate,
@@ -485,6 +491,9 @@ struct FramefiveView: View {
                 showLocation: $showLocation
             )
         }
+        .sheet(isPresented: $isRememberViewPresented) {
+            RememberView(memoryText: $memoryText)
+        }
         .alert(isPresented: $showSaveAlert) {
             Alert(
                 title: Text(saveAlertTitle),
@@ -492,336 +501,316 @@ struct FramefiveView: View {
                 dismissButton: .default(Text("确定"))
             )
         }
-    }
-}
-
-// Color扩展已移至Extensions.swift文件中
-
-struct FramefiveView_Previews: PreviewProvider {
-    static var previews: some View {
-        // 为了预览，我们需要一个NavigationView上下文
-        NavigationView {
-            FramefiveView(selectedImage: nil, frameIndex: 4)
+        .onAppear {
+            calculateSizes()
         }
     }
+    
+    // 计算适当的尺寸
+    private func calculateSizes() {
+        guard selectedImage != nil else { return }
+        
+        // 设置显示区域尺寸（固定为371*355）
+        displayWidth = 371
+        displayHeight = 355
+        
+        // 设置边框尺寸
+        frameWidth = displayWidth + 32 // 两侧各留16点边距
+        frameHeight = displayHeight + 200 // 顶部和底部留出足够空间给文字
+    }
 }
 
+// MARK: - 扩展：保存图片到相册
 extension FramefiveView {
-    // 保存图片到相册
-    func saveImageToPhotoAlbum() {
-        #if canImport(UIKit)
-        // 检查相册访问权限
+    private func saveImageToPhotoAlbum() {
+        // 检查相册权限
         let status = PHPhotoLibrary.authorizationStatus()
         
         switch status {
-        case .authorized, .limited:
-            // 已授权，继续保存图片
-            if let image = selectedImage {
-                // 创建一个UIView来渲染整个视图
-                let renderer = UIGraphicsImageRenderer(size: CGSize(width: frameWidth, height: frameHeight))
-                
-                let renderedImage = renderer.image { context in
-                    // 绘制背景
-                    UIColor(frameColor).setFill()
-                    context.fill(CGRect(x: 0, y: 0, width: frameWidth, height: frameHeight))
-                    
-                    // 绘制图片显示区域背景
-                    UIColor.white.setFill()
-                    context.fill(CGRect(x: (frameWidth - displayWidth) / 2, y: (frameHeight - displayHeight) / 2 - 42, width: displayWidth, height: displayHeight))
-                    
-                    // 计算图片在显示区域内的实际尺寸和位置
-                    let imageSize = image.size
-                    let imageAspectRatio = imageSize.width / imageSize.height
-                    let displayAreaAspectRatio = displayWidth / displayHeight
-                    
-                    var scaledWidth: CGFloat
-                    var scaledHeight: CGFloat
-                    
-                    if imageAspectRatio > displayAreaAspectRatio {
-                        // 图片较宽，高度适应显示区域
-                        scaledHeight = displayHeight
-                        scaledWidth = scaledHeight * imageAspectRatio
+        case .authorized:
+            proceedWithSavingImage()
+        case .denied, .restricted:
+            saveAlertTitle = "权限被拒绝"
+            saveAlertMessage = "请在设置中允许访问相册权限"
+            showSaveAlert = true
+        case .notDetermined:
+            PHPhotoLibrary.requestAuthorization { newStatus in
+                DispatchQueue.main.async {
+                    if newStatus == .authorized {
+                        self.proceedWithSavingImage()
                     } else {
-                        // 图片较高，宽度适应显示区域
-                        scaledWidth = displayWidth
-                        scaledHeight = scaledWidth / imageAspectRatio
-                    }
-                    
-                    // 应用用户的缩放
-                    scaledWidth *= currentScale
-                    scaledHeight *= currentScale
-                    
-                    // 计算图片在显示区域内的位置
-                    let centerX = (frameWidth - displayWidth) / 2 + displayWidth / 2
-                    let centerY = (frameHeight - displayHeight) / 2 - 42 + displayHeight / 2
-                    
-                    // 应用用户的位置偏移
-                    let offsetX = lastValidPosition.width
-                    let offsetY = lastValidPosition.height
-                    
-                    // 绘制图片
-                    let drawRect = CGRect(
-                        x: centerX - scaledWidth / 2 + offsetX,
-                        y: centerY - scaledHeight / 2 + offsetY,
-                        width: scaledWidth,
-                        height: scaledHeight
-                    )
-                    
-                    // 创建一个裁剪路径，确保图片不会超出显示区域
-                    let clipRect = CGRect(
-                        x: (frameWidth - displayWidth) / 2,
-                        y: (frameHeight - displayHeight) / 2 - 42,
-                        width: displayWidth,
-                        height: displayHeight
-                    )
-                    
-                    context.cgContext.saveGState()
-                    context.cgContext.addRect(clipRect)
-                    context.cgContext.clip()
-                    
-                    image.draw(in: drawRect)
-                    
-                    context.cgContext.restoreGState()
-                    
-                    // 绘制日期
-                    if showDate {
-                        let dateText = getImageDate(image) ?? "未知日期"
-                        let dateAttributes: [NSAttributedString.Key: Any] = [
-                            .font: UIFont(name: "PixelMplus12-Regular", size: 18) ?? UIFont.systemFont(ofSize: 18, weight: .semibold),
-                            .foregroundColor: UIColor(dateTextColor)
-                        ]
-                        
-                        let dateSize = (dateText as NSString).size(withAttributes: dateAttributes)
-                        let dateX = (frameWidth - displayWidth) / 2 + displayWidth - dateSize.width - 10
-                        let dateY = (frameHeight - displayHeight) / 2 - 42 + displayHeight - dateSize.height - 10
-                        
-                        (dateText as NSString).draw(at: CGPoint(x: dateX, y: dateY), withAttributes: dateAttributes)
-                    }
-                    
-                    // 绘制标题文字
-                    let titleText = truncateText(memoryText, maxLength: 35)
-                    let titleAttributes: [NSAttributedString.Key: Any] = [
-                        .font: UIFont.systemFont(ofSize: 14, weight: .medium),
-                        .foregroundColor: UIColor(titleTextColor)
-                    ]
-                    
-                    let titleX = (frameWidth - displayWidth) / 2
-                    let titleY = (frameHeight - displayHeight) / 2 - 42 + displayHeight + 20
-                    
-                    (titleText as NSString).draw(at: CGPoint(x: titleX, y: titleY), withAttributes: titleAttributes)
-                    
-                    // 绘制位置信息
-                    if showLocation {
-                        let locationText = getLocationText()
-                        let locationAttributes: [NSAttributedString.Key: Any] = [
-                            .font: UIFont.systemFont(ofSize: 12, weight: .regular),
-                            .foregroundColor: UIColor(locationTextColor)
-                        ]
-                        
-                        // 绘制位置图标
-                        if let mapImage = UIImage(named: "map_s")?.withTintColor(UIColor(iconColor)) {
-                            let iconSize: CGFloat = 14
-                            let iconX = titleX
-                            let iconY = titleY + 20
-                            
-                            mapImage.draw(in: CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize))
-                            
-                            // 绘制位置文字
-                            let locationX = iconX + iconSize + 2
-                            let locationY = iconY + (iconSize - 12) / 2 // 垂直居中
-                            
-                            (locationText as NSString).draw(at: CGPoint(x: locationX, y: locationY), withAttributes: locationAttributes)
-                        } else {
-                            // 如果图标加载失败，只绘制文字
-                            let locationX = titleX
-                            let locationY = titleY + 20
-                            
-                            (locationText as NSString).draw(at: CGPoint(x: locationX, y: locationY), withAttributes: locationAttributes)
-                        }
-                    }
-                }
-                
-                // 保存渲染后的图片到相册
-                // 使用Photos框架保存图片
-                PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.creationRequestForAsset(from: renderedImage)
-                } completionHandler: { [self] success, error in
-                    DispatchQueue.main.async {
-                        if success {
-                            self.saveAlertTitle = "保存成功"
-                            self.saveAlertMessage = "图片已成功保存到相册"
-                        } else if let error = error {
-                            self.saveAlertTitle = "保存失败"
-                            self.saveAlertMessage = error.localizedDescription
-                        }
+                        self.saveAlertTitle = "权限被拒绝"
+                        self.saveAlertMessage = "需要相册权限才能保存图片"
                         self.showSaveAlert = true
                     }
                 }
-            } else {
-                saveAlertTitle = "保存失败"
-                saveAlertMessage = "未选择图片"
-                showSaveAlert = true
             }
-        case .notDetermined:
-            // 请求权限
-            PHPhotoLibrary.requestAuthorization { status in
-                DispatchQueue.main.async {
-                    if status == .authorized || status == .limited {
-                        self.saveImageToPhotoAlbum() // 递归调用
-                    } else {
-                        self.showPermissionDeniedAlert()
-                    }
-                }
-            }
-        case .denied, .restricted:
-            // 显示权限被拒绝的提示
-            showPermissionDeniedAlert()
+        case .limited:
+            proceedWithSavingImage()
         @unknown default:
+            saveAlertTitle = "未知错误"
+            saveAlertMessage = "无法获取相册权限状态"
+            showSaveAlert = true
+        }
+    }
+    
+    private func proceedWithSavingImage() {
+        guard let selectedImage = selectedImage else {
             saveAlertTitle = "保存失败"
-            saveAlertMessage = "未知错误"
+            saveAlertMessage = "没有选择图片"
             showSaveAlert = true
+            return
         }
-        #elseif canImport(AppKit)
-        // macOS实现
-        if #available(macOS 13.0, *) {
-            // 创建一个NSView来渲染整个视图
-            let renderer = ImageRenderer(content: ZStack {
-                // 背景
-                Rectangle()
-                    .fill(frameColor)
-                    .frame(width: frameWidth, height: frameHeight)
+        
+        #if os(iOS)
+        // iOS 实现
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 371, height: 455))
+        let finalImage = renderer.image { context in
+            // 绘制背景色
+            UIColor(frameColor).setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 371, height: 455))
+            
+            // 计算图片在显示区域内的实际绘制位置和尺寸
+            let displayRect = CGRect(x: 0, y: 0, width: 371, height: 355)
+            
+            // 计算缩放后的图片尺寸
+            let scaledImageSize = CGSize(
+                width: selectedImage.size.width * currentScale,
+                height: selectedImage.size.height * currentScale
+            )
+            
+            // 计算图片的绘制位置（考虑用户的拖拽偏移）
+            let imageRect = CGRect(
+                x: displayRect.midX - scaledImageSize.width/2 + lastValidPosition.width,
+                y: displayRect.midY - scaledImageSize.height/2 + lastValidPosition.height,
+                width: scaledImageSize.width,
+                height: scaledImageSize.height
+            )
+            
+            // 设置裁剪区域为显示区域
+            context.cgContext.saveGState()
+            context.cgContext.clip(to: displayRect)
+            
+            // 绘制图片
+            selectedImage.draw(in: imageRect)
+            
+            context.cgContext.restoreGState()
+            
+            // 绘制日期（如果显示）
+            if showDate {
+                let dateText = getImageDate(selectedImage) ?? "未知日期"
+                let dateAttributes: [NSAttributedString.Key: Any] = [
+                    .font: UIFont(name: "PixelMplus12-Regular", size: 18) ?? UIFont.systemFont(ofSize: 18, weight: .semibold),
+                    .foregroundColor: UIColor(dateTextColor)
+                ]
                 
-                // 图片显示区域背景
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(width: displayWidth, height: displayHeight)
-                    .offset(y: -42)
+                let dateSize = dateText.size(withAttributes: dateAttributes)
+                let dateRect = CGRect(
+                    x: displayRect.maxX - dateSize.width - 12,
+                    y: displayRect.minY + 12,
+                    width: dateSize.width,
+                    height: dateSize.height
+                )
                 
-                // 显示选择的图片
-                if let image = selectedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: displayAreaSize, height: displayAreaSize)
-                        .scaleEffect(currentScale)
-                        .offset(lastValidPosition)
-                        .offset(y: -42)
-                        .clipped()
-                }
+                dateText.draw(in: dateRect, withAttributes: dateAttributes)
+            }
+            
+            // 绘制文字信息
+            let textY: CGFloat = 382 // 图片下方的文字位置 (355)
+            let textX: CGFloat = 16 // 向右移动16点，与设置部分一致
+            let textWidth: CGFloat = 355 // 相应减少宽度
+            
+            // 绘制标题文字（两行显示）
+            let titleLines = formatTextForTwoLines(memoryText)
+            var currentY = textY
+            
+            for line in titleLines {
+                let titleAttributes: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 14, weight: .medium),
+                    .foregroundColor: UIColor(titleTextColor)
+                ]
                 
-                // 日期显示
-                if showDate, let image = selectedImage {
-                    Text(getImageDate(image) ?? "未知日期")
-                        .font(.custom("PixelMplus12-Regular", size: 18))
-                        .fontWeight(.semibold)
-                        .foregroundColor(dateTextColor)
-                        .padding([.bottom, .trailing], 10)
-                        .frame(width: displayWidth, height: displayHeight, alignment: .bottomTrailing)
-                        .offset(y: -42)
-                }
+                let titleSize = line.size(withAttributes: titleAttributes)
+                let titleRect = CGRect(
+                    x: textX,
+                    y: currentY,
+                    width: textWidth,
+                    height: titleSize.height
+                )
                 
-                // 标题文字
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(truncateText(memoryText, maxLength: 35))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(titleTextColor)
+                line.draw(in: titleRect, withAttributes: titleAttributes)
+                currentY += titleSize.height + 2 // 行间距2点
+            }
+            
+            // 绘制地点信息（如果显示）
+            if showLocation {
+                currentY += 6 // 与标题的间距，对应设置部分VStack的spacing: 6
+                
+                // 绘制地点图标
+                if let mapIcon = UIImage(named: "map_s") {
+                    let iconRect = CGRect(x: textX, y: currentY, width: 14, height: 14)
                     
-                    if showLocation {
-                        HStack(spacing: 2) {
-                            Image("map_s")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 14, height: 14)
-                                .foregroundColor(iconColor)
-                            
-                            Text(getLocationText())
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(locationTextColor)
-                        }
-                    }
+                    // 应用图标颜色
+                    let iconWithColor = mapIcon.withTintColor(UIColor(iconColor), renderingMode: .alwaysOriginal)
+                    iconWithColor.draw(in: iconRect)
                 }
-                .padding(.top, 350)
-                .padding(.leading, 0)
-                .frame(width: 339, alignment: .leading)
-            })
-            
-            // 设置渲染尺寸和缩放因子
-            renderer.proposedSize = ProposedViewSize(width: frameWidth, height: frameHeight)
-            
-            if let image = selectedImage {
-                // 计算适当的缩放因子，使输出图片尽可能接近原始尺寸
-                let originalWidth = image.size.width
-                let originalHeight = image.size.height
-                let scaleFactorWidth = originalWidth / frameWidth
-                let scaleFactorHeight = originalHeight / frameHeight
-                let scaleFactor = max(2.0, min(scaleFactorWidth, scaleFactorHeight, 4.0)) // 限制在2.0-4.0之间
                 
-                renderer.scale = scaleFactor
-            } else {
-                renderer.scale = 2.0 // 默认缩放因子
+                // 绘制地点文字
+                let locationText = getLocationText()
+                let locationAttributes: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 12, weight: .regular),
+                    .foregroundColor: UIColor(locationTextColor)
+                ]
+                
+                let locationSize = locationText.size(withAttributes: locationAttributes)
+                let locationRect = CGRect(
+                    x: textX + 16, // 图标宽度14 + 间距2
+                    y: currentY,
+                    width: textWidth - 16,
+                    height: locationSize.height
+                )
+                
+                locationText.draw(in: locationRect, withAttributes: locationAttributes)
+            }
+        }
+        
+        // 保存到相册
+         UIImageWriteToSavedPhotosAlbum(finalImage, nil, nil, nil)
+         
+         // 显示保存成功提示
+         showSaveSuccess()
+        
+        #elseif os(macOS)
+        // macOS 实现
+        let imageSize = NSSize(width: 371, height: 455)
+        let finalImage = NSImage(size: imageSize)
+        
+        finalImage.lockFocus()
+        
+        // 绘制背景色
+        NSColor(frameColor).setFill()
+        NSRect(x: 0, y: 0, width: 371, height: 455).fill()
+        
+        // 计算图片在显示区域内的实际绘制位置和尺寸
+        let displayRect = NSRect(x: 0, y: 50, width: 371, height: 355)
+        
+        // 计算缩放后的图片尺寸
+        let scaledImageSize = NSSize(
+            width: selectedImage.size.width * currentScale,
+            height: selectedImage.size.height * currentScale
+        )
+        
+        // 计算图片的绘制位置（考虑用户的拖拽偏移）
+        let imageRect = NSRect(
+            x: displayRect.midX - scaledImageSize.width/2 + lastValidPosition.width,
+            y: displayRect.midY - scaledImageSize.height/2 + lastValidPosition.height,
+            width: scaledImageSize.width,
+            height: scaledImageSize.height
+        )
+        
+        // 设置裁剪区域为显示区域
+        NSGraphicsContext.current?.saveGraphicsState()
+        displayRect.clip()
+        
+        // 绘制图片
+        if let nsImage = NSImage(data: selectedImage.pngData() ?? Data()) {
+            nsImage.draw(in: imageRect)
+        }
+        
+        NSGraphicsContext.current?.restoreGraphicsState()
+        
+        // 绘制日期（如果显示）
+        if showDate {
+            let dateText = getImageDate(selectedImage) ?? "未知日期"
+            let dateAttributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont(name: "PixelMplus12-Regular", size: 18) ?? NSFont.systemFont(ofSize: 18, weight: .semibold),
+                .foregroundColor: NSColor(dateTextColor)
+            ]
+            
+            let dateSize = dateText.size(withAttributes: dateAttributes)
+            let dateRect = NSRect(
+                x: displayRect.maxX - dateSize.width - 12,
+                y: displayRect.minY + 12,
+                width: dateSize.width,
+                height: dateSize.height
+            )
+            
+            dateText.draw(in: dateRect, withAttributes: dateAttributes)
+        }
+        
+        // 绘制文字信息
+        let textY: CGFloat = 382 // 图片下方的文字位置 (50 + 355)
+        let textX: CGFloat = 16 // 向右移动16点，与设置部分一致
+        let textWidth: CGFloat = 355 // 相应减少宽度
+        
+        // 绘制标题文字（两行显示）
+        let titleLines = formatTextForTwoLines(memoryText)
+        var currentY = textY
+        
+        for line in titleLines {
+            let titleAttributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 14, weight: .medium),
+                .foregroundColor: NSColor(titleTextColor)
+            ]
+            
+            let titleSize = line.size(withAttributes: titleAttributes)
+            let titleRect = NSRect(
+                x: textX,
+                y: currentY,
+                width: textWidth,
+                height: titleSize.height
+            )
+            
+            line.draw(in: titleRect, withAttributes: titleAttributes)
+            currentY += titleSize.height + 2 // 行间距2点
+        }
+        
+        // 绘制地点信息（如果显示）
+        if showLocation {
+            currentY += 6 // 与标题的间距，对应设置部分VStack的spacing: 6
+            
+            // 绘制地点图标
+            if let mapIcon = NSImage(named: "map_s") {
+                let iconRect = NSRect(x: textX, y: currentY, width: 14, height: 14)
+                mapIcon.draw(in: iconRect)
             }
             
-            // 获取渲染后的图片
-            if let nsImage = renderer.nsImage {
-                // 在macOS上实现保存功能
-                saveAlertTitle = "保存成功"
-                saveAlertMessage = "图片已成功保存"
-                showSaveAlert = true
-            } else {
-                saveAlertTitle = "保存失败"
-                saveAlertMessage = "无法生成图片"
-                showSaveAlert = true
-            }
-        } else {
-            // macOS 13以下版本兼容处理
-            saveAlertTitle = "功能不可用"
-            saveAlertMessage = "此功能需要macOS 13.0或更高版本"
-            showSaveAlert = true
+            // 绘制地点文字
+            let locationText = getLocationText()
+            let locationAttributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 12, weight: .regular),
+                .foregroundColor: NSColor(locationTextColor)
+            ]
+            
+            let locationSize = locationText.size(withAttributes: locationAttributes)
+            let locationRect = NSRect(
+                x: textX + 16, // 图标宽度14 + 间距2
+                y: currentY,
+                width: textWidth - 16,
+                height: locationSize.height
+            )
+            
+            locationText.draw(in: locationRect, withAttributes: locationAttributes)
         }
+        
+        finalImage.unlockFocus()
+        
+        // macOS 保存逻辑（这里需要根据实际需求实现）
+        saveAlertTitle = "导出成功"
+        saveAlertMessage = "图片已生成"
+        showSaveAlert = true
         #endif
     }
     
-    // 这个回调方法已被Photos框架的API替代
-    #if canImport(UIKit)
-    // 注意：移除了@objc标记，因为它不能用于结构体
-    // 如果需要此方法，应将整个视图改为类而不是结构体
-    #endif
-    
-    // 显示权限被拒绝的提示
-    private func showPermissionDeniedAlert() {
-        self.saveAlertTitle = "无法访问相册"
-        self.saveAlertMessage = "请在设置中允许应用访问您的相册，以便保存图片。"
-        self.showSaveAlert = true
-    }
-}
-
-extension FramefiveView {
-    // 计算适当的尺寸
-    private func calculateSizes() {
-        guard let image = selectedImage else { return }
-        
-        // 获取原始图片尺寸
-        let imageWidth = image.size.width
-        let imageHeight = image.size.height
-        
-        // 获取屏幕尺寸
-        let screenWidth = UIScreen.main.bounds.width
-        let maxFrameWidth = min(screenWidth - 40, imageWidth) // 留出边距
-        
-        // 计算适当的显示区域尺寸（保持正方形）
-        let displaySize = min(maxFrameWidth - 32, min(imageWidth, imageHeight))
-        
-        // 设置显示区域尺寸
-        displayWidth = displaySize
-        displayHeight = displaySize
-        
-        // 设置边框尺寸
-        frameWidth = displaySize + 32 // 两侧各留16点边距
-        frameHeight = displaySize + 116 // 顶部和底部留出足够空间给文字
+    // 由于struct不支持@objc，直接在保存后显示成功提示
+    private func showSaveSuccess() {
+        saveAlertTitle = "保存成功"
+        saveAlertMessage = "图片已保存到相册"
+        showSaveAlert = true
     }
     
-    // 优化后的偏移量计算函数，减少重复计算
-    func limitOffsetToDisplayAreaOptimized(_ offset: CGSize, scale: CGFloat, image: UIImage) -> CGSize {
+    // 限制图片偏移量在显示区域内的优化版本
+    private func limitOffsetToDisplayAreaOptimized(_ offset: CGSize, scale: CGFloat, image: UIImage) -> CGSize {
         // 使用缓存的边界信息，避免重复计算
         if cachedImageBounds == .zero {
             updateCachedImageBounds(for: image)
@@ -842,8 +831,8 @@ extension FramefiveView {
         return CGSize(width: limitedX, height: limitedY)
     }
     
-    // 更新缓存的图片边界信息
-    func updateCachedImageBounds(for image: UIImage) {
+    // 更新缓存的图片边界
+    private func updateCachedImageBounds(for image: UIImage) {
         let imageSize = image.size
         let imageAspectRatio = imageSize.width / imageSize.height
         let displayAreaAspectRatio = displayAreaSize / displayAreaSize
@@ -864,69 +853,54 @@ extension FramefiveView {
         cachedImageBounds = CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight)
     }
     
-    // 计算偏移量，允许图片在显示区域内移动（保留原函数作为备用）
-    func limitOffsetToDisplayArea(_ offset: CGSize, scale: CGFloat) -> CGSize {
-        guard let image = selectedImage else { return .zero }
-        
-        // 获取图片的原始尺寸
-        let imageSize = image.size
-        
-        // 计算图片在显示区域内的实际尺寸（考虑缩放和填充模式）
-        let imageAspectRatio = imageSize.width / imageSize.height
-        let displayAreaAspectRatio = displayAreaSize / displayAreaSize
-        
-        var scaledWidth: CGFloat
-        var scaledHeight: CGFloat
-        
-        if imageAspectRatio > displayAreaAspectRatio {
-            // 图片较宽，高度适应显示区域
-            scaledHeight = displayAreaSize
-            scaledWidth = scaledHeight * imageAspectRatio
-        } else {
-            // 图片较高，宽度适应显示区域
-            scaledWidth = displayAreaSize
-            scaledHeight = scaledWidth / imageAspectRatio
-        }
-        
-        // 应用用户的缩放
-        scaledWidth *= scale
-        scaledHeight *= scale
-        
-        // 计算可移动的范围
-        let maxOffsetX = (scaledWidth - displayAreaSize) / 2
-        let maxOffsetY = (scaledHeight - displayAreaSize) / 2
-        
-        // 限制偏移量，确保图片不会移出显示区域
-        let limitedX = min(maxOffsetX, max(-maxOffsetX, offset.width))
-        let limitedY = min(maxOffsetY, max(-maxOffsetY, offset.height))
-        
-        return CGSize(width: limitedX, height: limitedY)
-    }
-    
-    // 截断文本，超过指定长度的部分用...代替
-    func truncateText(_ text: String, maxLength: Int) -> String {
+    // 截断文本函数
+    private func truncateText(_ text: String, maxLength: Int) -> String {
         if text.count <= maxLength {
             return text
         } else {
-            // 超过maxLength个字符时，显示前maxLength个字符加...
-            let index = text.index(text.startIndex, offsetBy: maxLength)
+            let index = text.index(text.startIndex, offsetBy: maxLength - 3)
             return String(text[..<index]) + "..."
         }
     }
     
-    // 获取照片地理位置信息
-    private func getLocationText() -> String {
-        // 如果设置了自定义位置，优先使用自定义位置
-        if !customLocation.isEmpty {
-            return customLocation
+    // 格式化文本为两行显示的函数
+    private func formatTextForTwoLines(_ text: String) -> [String] {
+        if text.count <= 20 {
+            // 如果文本长度不超过20个字符，只显示一行
+            return [text]
+        } else if text.count <= 35 {
+            // 如果文本长度在20-35个字符之间，分两行显示
+            let firstLineEnd = text.index(text.startIndex, offsetBy: 20)
+            let firstLine = String(text[..<firstLineEnd])
+            let secondLine = String(text[firstLineEnd...])
+            return [firstLine, secondLine]
+        } else {
+            // 如果文本长度超过35个字符，第一行20个字符，第二行最多15个字符，超出部分用"···"代替
+            let firstLineEnd = text.index(text.startIndex, offsetBy: 20)
+            let firstLine = String(text[..<firstLineEnd])
+            
+            let remainingText = String(text[firstLineEnd...])
+            let secondLine: String
+            if remainingText.count <= 15 {
+                secondLine = remainingText
+            } else {
+                let secondLineEnd = remainingText.index(remainingText.startIndex, offsetBy: 12)
+                secondLine = String(remainingText[..<secondLineEnd]) + "···"
+            }
+            
+            return [firstLine, secondLine]
         }
-        
-        // 返回默认值"中国"
-        return "中国"
+    }
+    
+    // 获取照片的地理位置信息
+    private func getPhotoLocation(_ image: UIImage) -> String? {
+        // 这里应该实现获取照片地理位置的逻辑
+        // 由于需要访问照片的元数据，这里返回一个示例
+        return nil
     }
     
     // 获取图片拍摄日期
-    private func getImageDate(_ image: UIImage) -> String? {
+    private func getImageDate(_ image: UIImage?) -> String? {
         // 如果设置了自定义日期，优先使用自定义日期
         if let customDateString = getCustomDateIfSet() {
             return customDateString
@@ -955,4 +929,33 @@ extension FramefiveView {
         
         return nil
     }
+    
+    // 检查是否使用自定义日期
+    private func isUsingCustomDate() -> Bool {
+        // 这里可以添加逻辑来判断是否使用了自定义日期
+        // 目前简单返回false
+        return false
+    }
+    
+    // 格式化日期
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy.MM.dd"
+        return formatter.string(from: date)
+    }
+    
+    // 获取地点文字
+    private func getLocationText() -> String {
+        if !customLocation.isEmpty {
+            return customLocation
+        } else if let selectedImage = selectedImage, let location = getPhotoLocation(selectedImage) {
+            return location
+        } else {
+            return "未知地点"
+        }
+    }
+}
+
+#Preview {
+    FramefiveView(selectedImage: UIImage(named: "frame_five"))
 }

@@ -198,9 +198,13 @@ struct FrameoneView: View {
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(truncateText(memoryText, maxLength: 35))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(titleTextColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                                Text(line)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(titleTextColor)
+                            }
+                        }
                         
                         if showLocation {
                             HStack(spacing: 2) {
@@ -865,9 +869,13 @@ extension FrameoneView {
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(truncateText(memoryText, maxLength: 35))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(titleTextColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                                Text(line)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(titleTextColor)
+                            }
+                        }
                         
                         if showLocation {
                             HStack(spacing: 2) {
@@ -972,9 +980,13 @@ extension FrameoneView {
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 2) { 
-                        Text(truncateText("我的独家记忆我的独家记忆我忆忆", maxLength: 35))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(titleTextColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                                Text(line)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(titleTextColor)
+                            }
+                        }
                         
                         if showLocation {
                             HStack(spacing: 4) {
@@ -1160,6 +1172,42 @@ extension FrameoneView {
         }
     }
     
+    // 格式化文本为两行显示：第一行最多20个字符，第二行最多15个字符
+    func formatTextForTwoLines(_ text: String) -> [String] {
+        if text.count <= 20 {
+            // 文本长度不超过20个字符，只显示一行
+            return [text]
+        } else if text.count <= 35 {
+            // 文本长度在20-35个字符之间，分两行显示
+            let firstLineEnd = text.index(text.startIndex, offsetBy: 20)
+            let firstLine = String(text[..<firstLineEnd])
+            let secondLine = String(text[firstLineEnd...])
+            
+            if secondLine.count <= 15 {
+                return [firstLine, secondLine]
+            } else {
+                // 第二行超过15个字符，截断并加"···"
+                let secondLineEnd = secondLine.index(secondLine.startIndex, offsetBy: 15)
+                let truncatedSecondLine = String(secondLine[..<secondLineEnd]) + "···"
+                return [firstLine, truncatedSecondLine]
+            }
+        } else {
+            // 文本长度超过35个字符
+            let firstLineEnd = text.index(text.startIndex, offsetBy: 20)
+            let firstLine = String(text[..<firstLineEnd])
+            let remainingText = String(text[firstLineEnd...])
+            
+            if remainingText.count <= 15 {
+                return [firstLine, remainingText]
+            } else {
+                // 第二行超过15个字符，截断并加"···"
+                let secondLineEnd = remainingText.index(remainingText.startIndex, offsetBy: 15)
+                let truncatedSecondLine = String(remainingText[..<secondLineEnd]) + "···"
+                return [firstLine, truncatedSecondLine]
+            }
+        }
+    }
+    
     // 获取照片地理位置信息
     private func getLocationText() -> String {
         // 如果设置了自定义位置，优先使用自定义位置
@@ -1167,8 +1215,8 @@ extension FrameoneView {
             return customLocation
         }
         
-        // 返回默认值"中国"
-        return "中国"
+        // 返回默认值"未知地点"
+        return "未知地点"
     }
     
     // 获取图片拍摄日期
@@ -1202,5 +1250,3 @@ extension FrameoneView {
         return nil
     }
 }
-
-// ... existing code ...

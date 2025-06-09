@@ -921,8 +921,8 @@ extension FramefourView {
             return customLocation
         }
         
-        // 返回默认值"中国"
-        return "中国"
+        // 返回默认值"未知地点"
+        return "未知地点"
     }
     
     // 获取图片拍摄日期
