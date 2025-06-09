@@ -34,23 +34,6 @@
 		B2957C612DD481BA00D4EB08 /* OwnMomentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwnMomentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		B20C66E62DF64CE20049B735 /* Exceptions for "OwnMomentUITests" folder in "OwnMoment" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				framenineview.swift,
-			);
-			target = B2957C462DD481B800D4EB08 /* OwnMoment */;
-		};
-		B20C66E72DF64CE20049B735 /* Exceptions for "OwnMomentUITests" folder in "OwnMomentUITests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				framenineview.swift,
-			);
-			target = B2957C602DD481BA00D4EB08 /* OwnMomentUITests */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B2957C492DD481B800D4EB08 /* OwnMoment */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -64,10 +47,6 @@
 		};
 		B2957C642DD481BA00D4EB08 /* OwnMomentUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				B20C66E62DF64CE20049B735 /* Exceptions for "OwnMomentUITests" folder in "OwnMoment" target */,
-				B20C66E72DF64CE20049B735 /* Exceptions for "OwnMomentUITests" folder in "OwnMomentUITests" target */,
-			);
 			path = OwnMomentUITests;
 			sourceTree = "<group>";
 		};

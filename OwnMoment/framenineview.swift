@@ -58,12 +58,16 @@ struct FramenineView: View {
     // 添加动态尺寸变量
     @State private var frameWidth: CGFloat = 371
     @State private var frameHeight: CGFloat = 455
-    @State private var displayWidth: CGFloat = 339
-    @State private var displayHeight: CGFloat = 339
+    @State private var displayWidth: CGFloat = 271
+    @State private var displayHeight: CGFloat = 305
     
-    // 蓝色显示区域的尺寸常量 - 将其改为计算属性
-    private var displayAreaSize: CGFloat {
-        return displayWidth // 正方形区域，宽高相等
+    // 显示区域的尺寸常量 - 改为支持矩形区域
+    private var displayAreaWidth: CGFloat {
+        return displayWidth
+    }
+    
+    private var displayAreaHeight: CGFloat {
+        return displayHeight
     }
 
     var body: some View {
@@ -95,11 +99,11 @@ struct FramenineView: View {
                         .allowsHitTesting(true) // 确保按钮可以接收点击事件
                     }
                     
-                    // 在白色背景上层添加图片显示区域，距离白色背景边缘16点
+                    // 在白色背景上层添加图片显示区域，距离白色背景边缘50点
                     ZStack {
                         Rectangle()
                             .fill(Color.white) // 暂用蓝色填充
-                            .frame(width: 339, height: 339)
+                            .frame(width: 271, height: 305)
                         
                         // 显示选择的图片
                         if let image = selectedImage {
@@ -108,7 +112,7 @@ struct FramenineView: View {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill() // 使用fill而不是fit，确保完全填充
-                                    .frame(width: displayAreaSize, height: displayAreaSize)
+                                    .frame(width: displayAreaWidth, height: displayAreaHeight)
                                     // 应用缩放效果
                                     .scaleEffect(currentScale)
                                     // 应用位置偏移，但限制在显示区域内
@@ -187,6 +191,7 @@ struct FramenineView: View {
                                         .fontWeight(.semibold)
                                         .foregroundColor(dateTextColor)
                                         .padding([.bottom, .trailing], 10)
+                                        .offset(y: -310) // 向上移动310点
                                 }
                             }
                         } else {
@@ -194,7 +199,7 @@ struct FramenineView: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    .offset(y: -42) // 向上移动42点
+                    .offset(y: -25) // 向上移动25点，使图片显示区上边缘到背景上边缘距离为25点
                     
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
@@ -218,7 +223,7 @@ struct FramenineView: View {
                     }
                     .padding(.top, 350) // 向下移动350点
                     .padding(.leading, 0) // 移除左边距
-                    .frame(width: 339, alignment: .leading) // 与蓝色显示区宽度一致
+                    .frame(width: 271, alignment: .leading) // 与蓝色显示区宽度一致
                     
                     // 添加滑动选择按钮，放在白色背景下方10点的位置
                     if showColorControls {
@@ -527,7 +532,7 @@ extension FramenineView {
                     
                     // 绘制图片显示区域背景
                     UIColor.white.setFill()
-                    context.fill(CGRect(x: (frameWidth - displayWidth) / 2, y: (frameHeight - displayHeight) / 2 - 42, width: displayWidth, height: displayHeight))
+                    context.fill(CGRect(x: (frameWidth - displayWidth) / 2, y: (frameHeight - displayHeight) / 2 - 25, width: displayWidth, height: displayHeight))
                     
                     // 计算图片在显示区域内的实际尺寸和位置
                     let imageSize = image.size
@@ -553,7 +558,7 @@ extension FramenineView {
                     
                     // 计算图片在显示区域内的位置
                     let centerX = (frameWidth - displayWidth) / 2 + displayWidth / 2
-                    let centerY = (frameHeight - displayHeight) / 2 - 42 + displayHeight / 2
+                    let centerY = (frameHeight - displayHeight) / 2 - 25 + displayHeight / 2
                     
                     // 应用用户的位置偏移
                     let offsetX = lastValidPosition.width
@@ -570,7 +575,7 @@ extension FramenineView {
                     // 创建一个裁剪路径，确保图片不会超出显示区域
                     let clipRect = CGRect(
                         x: (frameWidth - displayWidth) / 2,
-                        y: (frameHeight - displayHeight) / 2 - 42,
+                        y: (frameHeight - displayHeight) / 2 - 25,
                         width: displayWidth,
                         height: displayHeight
                     )
@@ -593,7 +598,7 @@ extension FramenineView {
                         
                         let dateSize = (dateText as NSString).size(withAttributes: dateAttributes)
                         let dateX = (frameWidth - displayWidth) / 2 + displayWidth - dateSize.width - 10
-                        let dateY = (frameHeight - displayHeight) / 2 - 42 + displayHeight - dateSize.height - 10
+                        let dateY = (frameHeight - displayHeight) / 2 - 25 + displayHeight - dateSize.height - 10 - 310
                         
                         (dateText as NSString).draw(at: CGPoint(x: dateX, y: dateY), withAttributes: dateAttributes)
                     }
@@ -606,9 +611,14 @@ extension FramenineView {
                     ]
                     
                     let titleX = (frameWidth - displayWidth) / 2
-                    let titleY = (frameHeight - displayHeight) / 2 - 42 + displayHeight + 20
+                    let titleY = (frameHeight - displayHeight) / 2 - 25 + displayHeight + 20
                     
-                    (titleText as NSString).draw(at: CGPoint(x: titleX, y: titleY), withAttributes: titleAttributes)
+                    // 支持分行显示
+                    let lines = titleText.components(separatedBy: "\n")
+                    for (index, line) in lines.enumerated() {
+                        let lineY = titleY + CGFloat(index) * 18 // 行间距18点
+                        (line as NSString).draw(at: CGPoint(x: titleX, y: lineY), withAttributes: titleAttributes)
+                    }
                     
                     // 绘制位置信息
                     if showLocation {
@@ -618,11 +628,15 @@ extension FramenineView {
                             .foregroundColor: UIColor(locationTextColor)
                         ]
                         
+                        // 计算位置信息的Y坐标，考虑标题的行数
+                        let titleLines = titleText.components(separatedBy: "\n")
+                        let locationBaseY = titleY + CGFloat(titleLines.count) * 18 + 5 // 标题行数 * 行间距 + 额外间距
+                        
                         // 绘制位置图标
                         if let mapImage = UIImage(named: "map_s")?.withTintColor(UIColor(iconColor)) {
                             let iconSize: CGFloat = 14
                             let iconX = titleX
-                            let iconY = titleY + 20
+                            let iconY = locationBaseY
                             
                             mapImage.draw(in: CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize))
                             
@@ -634,7 +648,7 @@ extension FramenineView {
                         } else {
                             // 如果图标加载失败，只绘制文字
                             let locationX = titleX
-                            let locationY = titleY + 20
+                            let locationY = locationBaseY
                             
                             (locationText as NSString).draw(at: CGPoint(x: locationX, y: locationY), withAttributes: locationAttributes)
                         }
@@ -695,17 +709,17 @@ extension FramenineView {
                 Rectangle()
                     .fill(Color.white)
                     .frame(width: displayWidth, height: displayHeight)
-                    .offset(y: -42)
+                    .offset(y: 6)
                 
                 // 显示选择的图片
                 if let image = selectedImage {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: displayAreaSize, height: displayAreaSize)
+                        .frame(width: displayAreaWidth, height: displayAreaHeight)
                         .scaleEffect(currentScale)
                         .offset(lastValidPosition)
-                        .offset(y: -42)
+                        .offset(y: -25)
                         .clipped()
                 }
                 
@@ -717,7 +731,8 @@ extension FramenineView {
                         .foregroundColor(dateTextColor)
                         .padding([.bottom, .trailing], 10)
                         .frame(width: displayWidth, height: displayHeight, alignment: .bottomTrailing)
-                        .offset(y: -42)
+                        .offset(y: -25)
+                        .offset(y: -310)
                 }
                 
                 // 标题文字
@@ -742,7 +757,7 @@ extension FramenineView {
                 }
                 .padding(.top, 350)
                 .padding(.leading, 0)
-                .frame(width: 339, alignment: .leading)
+                .frame(width: 271, alignment: .leading)
             })
             
             // 设置渲染尺寸和缩放因子
@@ -832,8 +847,8 @@ extension FramenineView {
         let scaledHeight = cachedImageBounds.height * scale
         
         // 计算可移动的范围
-        let maxOffsetX = max(0, (scaledWidth - displayAreaSize) / 2)
-        let maxOffsetY = max(0, (scaledHeight - displayAreaSize) / 2)
+        let maxOffsetX = max(0, (scaledWidth - displayAreaWidth) / 2)
+        let maxOffsetY = max(0, (scaledHeight - displayAreaHeight) / 2)
         
         // 限制偏移量，确保图片不会移出显示区域
         let limitedX = min(maxOffsetX, max(-maxOffsetX, offset.width))
@@ -846,18 +861,18 @@ extension FramenineView {
     func updateCachedImageBounds(for image: UIImage) {
         let imageSize = image.size
         let imageAspectRatio = imageSize.width / imageSize.height
-        let displayAreaAspectRatio = displayAreaSize / displayAreaSize
+        let displayAreaAspectRatio = displayAreaWidth / displayAreaHeight
         
         var scaledWidth: CGFloat
         var scaledHeight: CGFloat
         
         if imageAspectRatio > displayAreaAspectRatio {
             // 图片较宽，高度适应显示区域
-            scaledHeight = displayAreaSize
+            scaledHeight = displayAreaHeight
             scaledWidth = scaledHeight * imageAspectRatio
         } else {
             // 图片较高，宽度适应显示区域
-            scaledWidth = displayAreaSize
+            scaledWidth = displayAreaWidth
             scaledHeight = scaledWidth / imageAspectRatio
         }
         
@@ -873,18 +888,18 @@ extension FramenineView {
         
         // 计算图片在显示区域内的实际尺寸（考虑缩放和填充模式）
         let imageAspectRatio = imageSize.width / imageSize.height
-        let displayAreaAspectRatio = displayAreaSize / displayAreaSize
+        let displayAreaAspectRatio = displayAreaWidth / displayAreaHeight
         
         var scaledWidth: CGFloat
         var scaledHeight: CGFloat
         
         if imageAspectRatio > displayAreaAspectRatio {
             // 图片较宽，高度适应显示区域
-            scaledHeight = displayAreaSize
+            scaledHeight = displayAreaHeight
             scaledWidth = scaledHeight * imageAspectRatio
         } else {
             // 图片较高，宽度适应显示区域
-            scaledWidth = displayAreaSize
+            scaledWidth = displayAreaWidth
             scaledHeight = scaledWidth / imageAspectRatio
         }
         
@@ -893,8 +908,8 @@ extension FramenineView {
         scaledHeight *= scale
         
         // 计算可移动的范围
-        let maxOffsetX = (scaledWidth - displayAreaSize) / 2
-        let maxOffsetY = (scaledHeight - displayAreaSize) / 2
+        let maxOffsetX = (scaledWidth - displayAreaWidth) / 2
+        let maxOffsetY = (scaledHeight - displayAreaHeight) / 2
         
         // 限制偏移量，确保图片不会移出显示区域
         let limitedX = min(maxOffsetX, max(-maxOffsetX, offset.width))
@@ -903,14 +918,31 @@ extension FramenineView {
         return CGSize(width: limitedX, height: limitedY)
     }
     
-    // 截断文本，超过指定长度的部分用...代替
+    // 截断文本，支持分行显示：第一行最多15个字符，第二行最多10个字符
     func truncateText(_ text: String, maxLength: Int) -> String {
-        if text.count <= maxLength {
+        if text.count <= 15 {
+            // 文本长度不超过15个字符，直接返回
             return text
+        } else if text.count <= 25 {
+            // 文本长度在15-25个字符之间，分两行显示
+            let firstLineEnd = text.index(text.startIndex, offsetBy: 15)
+            let firstLine = String(text[..<firstLineEnd])
+            let secondLine = String(text[firstLineEnd...])
+            
+            if secondLine.count <= 10 {
+                return firstLine + "\n" + secondLine
+            } else {
+                let secondLineEnd = secondLine.index(secondLine.startIndex, offsetBy: 10)
+                return firstLine + "\n" + String(secondLine[..<secondLineEnd]) + "..."
+            }
         } else {
-            // 超过maxLength个字符时，显示前maxLength个字符加...
-            let index = text.index(text.startIndex, offsetBy: maxLength)
-            return String(text[..<index]) + "..."
+            // 文本长度超过25个字符，第一行15个字符，第二行10个字符加省略号
+            let firstLineEnd = text.index(text.startIndex, offsetBy: 15)
+            let firstLine = String(text[..<firstLineEnd])
+            let remainingText = String(text[firstLineEnd...])
+            let secondLineEnd = remainingText.index(remainingText.startIndex, offsetBy: 10)
+            let secondLine = String(remainingText[..<secondLineEnd]) + "..."
+            return firstLine + "\n" + secondLine
         }
     }
     
