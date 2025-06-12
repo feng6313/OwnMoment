@@ -58,7 +58,7 @@ struct FramethreeView: View {
     
     // 添加用户信息相关的状态变量
     @State private var userName = "用户名"
-    @State private var userNameColor = Color("#000000") // 默认黑色
+    @State private var userNameColor: Color? = Color("#000000") // 默认黑色
     @State private var userIconColor = Color("#000000") // 默认黑色
     
     // 添加图片显示区域的尺寸
@@ -94,10 +94,47 @@ struct FramethreeView: View {
                 Spacer()
             }
         }
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true) // 隐藏默认返回按钮
+        .navigationBarTitleDisplayMode(.inline) // 确保标题居中
+        .toolbarColorScheme(.dark, for: .navigationBar) // 保持导航栏颜色风格一致
+        .toolbarBackground(Color("#0C0F14"), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $isRememberViewPresented) {
             RememberView(memoryText: $memoryText)
         }
+        .toolbar(content: {
+            // 左侧返回按钮
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    presentationMode.wrappedValue.dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.white)
+                }
+            }
+            
+            // 中间标题
+            ToolbarItem(placement: .principal) {
+                Text("编辑")
+                    .foregroundColor(.white)
+                    .font(.headline)
+            }
+            
+            // 右侧保存按钮
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    // 保存按钮的操作
+                    saveImageToPhotoAlbum()
+                }) {
+                    Text("保存")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(width: 60, height: 30, alignment: .center)
+                        .background(Color("#007AFF"))
+                        .cornerRadius(15)
+                }
+            }
+        })
         .sheet(isPresented: $isSettingsViewPresented) {
             SettingsView(customDate: $customDate, customLocation: $customLocation, showDate: $showDate, showLocation: $showLocation)
         }
@@ -690,173 +727,19 @@ extension FramethreeView {
             .padding(.leading, 0) // 移除左边距
             .frame(width: 339, alignment: .leading) // 与显示区宽度一致
             
-            // 添加滑动选择按钮，放在白色背景下方10点的位置
-            if showColorControls {
-                SlideSelector(selectedOption: $selectedSlideOption)
-                    .offset(y: 32) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .move(edge: .bottom)),
-                        removal: .opacity.combined(with: .move(edge: .bottom))
-                    ))
-                    .animation(.easeInOut(duration: 0.3), value: showColorControls)
-            }
-            
-            // 添加图标选项栏，放在滑动选择按钮下方
-            HStack(spacing: 0) {
-                Spacer(minLength: 12) // 左侧距离屏幕24点
-                
-                // 颜色选项
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        selectedColorOption = 0
-                        showColorControls = true // 显示圆形色块和滑动按钮
-                    }
-                }) {
-                    ZStack {
-                        // 圆角矩形框
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("#1C1E22"))
-                            .frame(width: 107, height: 70)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(selectedColorOption == 0 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
-                            )
-                        
-                        // 图标和文字
-                        VStack(spacing: 5) {
-                            Image("color")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 20, height: 20)
-                            
-                            Text("颜色")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-                .disabled(selectedColorOption == 0) // 当已选中时禁用点击反馈
-                
-                Spacer() // 中间自动分配空间
-                
-                // 文字选项
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        selectedColorOption = 1
-                        showColorControls = false // 隐藏圆形色块和滑动按钮
-                    }
-                }) {
-                    ZStack {
-                        // 圆角矩形框
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("#1C1E22"))
-                            .frame(width: 107, height: 70)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(selectedColorOption == 1 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
-                            )
-                        
-                        // 图标和文字
-                        VStack(spacing: 5) {
-                            Image("word")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 20, height: 20)
-                            
-                            Text("内容")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-                .disabled(selectedColorOption == 1) // 当已选中时禁用点击反馈
-                
-                Spacer() // 中间自动分配空间
-                
-                // 更多选项
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        selectedColorOption = 2
-                        showColorControls = false // 隐藏圆形色块和滑动按钮
-                    }
-                }) {
-                    ZStack {
-                        // 圆角矩形框
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("#1C1E22"))
-                            .frame(width: 107, height: 70)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(selectedColorOption == 2 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
-                            )
-                        
-                        // 图标和文字
-                        VStack(spacing: 5) {
-                            Image("more")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 20, height: 20)
-                            
-                            Text("更多")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-                .disabled(selectedColorOption == 2) // 当已选中时禁用点击反馈
-                
-                Spacer(minLength: 12) // 右侧距离屏幕24点
-            }
-            .padding(.top, 20) // 与滑动选择按钮保持一定距离
-            
-            // 根据选择的选项显示不同的控制器
-            if selectedColorOption == 0 && showColorControls {
-                // 颜色选择器
-                ColorSelector(selectedOption: $selectedSlideOption, frameColor: $frameColor, titleTextColor: $titleTextColor, dateTextColor: $dateTextColor, locationTextColor: $locationTextColor, iconColor: $iconColor, userNameColor: $userNameColor)
-                    .padding(.top, 20)
-            } else if selectedColorOption == 2 {
-                // 更多选项（日期和地点）
-                VStack(spacing: 20) {
-                    // 日期选项
-                    HStack {
-                        Text("日期")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            isSettingsViewPresented = true
-                        }) {
-                            Text("设置")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color("#007AFF"))
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    // 地点选项
-                    HStack {
-                        Text("地点")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            isSettingsViewPresented = true
-                        }) {
-                            Text("设置")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color("#007AFF"))
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    Spacer() // 填充剩余空间
-                }
-                .padding(.top, 20)
-            }
+            // 使用通用功能设置组件
+            FunctionSettingsView(
+                selectedColorOption: $selectedColorOption,
+                showColorControls: $showColorControls,
+                selectedSlideOption: $selectedSlideOption,
+                frameColor: $frameColor,
+                titleTextColor: $titleTextColor,
+                dateTextColor: $dateTextColor,
+                locationTextColor: $locationTextColor,
+                iconColor: $iconColor,
+                userNameColor: $userNameColor,
+                isSettingsPresented: $isSettingsViewPresented
+            )
         }
     }
 

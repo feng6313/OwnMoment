@@ -54,6 +54,10 @@ struct FramefiveView: View {
     @State private var selectedColorOption = 0 // 当前选中的颜色选项（下方矩形框）
     @State private var selectedSlideOption = 0 // 当前选中的滑动选项（上方滑动按钮）
     @State private var showColorControls: Bool = true // 控制圆形色块和滑动按钮的显示
+    @State private var selectedColor: Color = .white // 选中的颜色
+    @State private var showDatePicker = false // 控制日期选择器显示
+    @State private var showLocationPicker = false // 控制地点选择器显示
+    @State private var userNameColor: Color? = nil // 用户名颜色
     
     // 添加动态尺寸变量
     @State private var frameWidth: CGFloat = 371
@@ -235,216 +239,20 @@ struct FramefiveView: View {
                     .padding(.leading, 16) // 向右移动16点
                     .frame(width: 371, alignment: .leading) // 与显示区宽度一致
                     
-                    // 添加滑动选择按钮，放在白色背景下方10点的位置
-                    if showColorControls {
-                        SlideSelector(selectedOption: $selectedSlideOption)
-                            .offset(y: 455/2 + 32) // 白色背景高度为455，除以2得到从中心到底部的距离，再加上10点
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .move(edge: .bottom)),
-                                removal: .opacity.combined(with: .move(edge: .bottom))
-                            ))
-                            .animation(.easeInOut(duration: 0.3), value: showColorControls)
-                    }
-                    
-                    // 添加图标选项栏，放在滑动选择按钮下方
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 12) // 左侧距离屏幕24点
-                        
-                        // 颜色选项
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedColorOption = 0
-                                showColorControls = true // 显示圆形色块和滑动按钮
-                            }
-                        }) {
-                            ZStack {
-                                // 圆角矩形框
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color("#1C1E22"))
-                                    .frame(width: 107, height: 70)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(selectedColorOption == 0 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
-                                    )
-                                
-                                // 图标和文字
-                                VStack(spacing: 5) {
-                                    Image("color")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 20, height: 20)
-                                    
-                                    Text("颜色")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                        }
-                        .disabled(selectedColorOption == 0) // 当已选中时禁用点击反馈
-                        
-                        Spacer() // 中间自动分配空间
-                        
-                        // 文字选项
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedColorOption = 1
-                                showColorControls = false // 隐藏圆形色块和滑动按钮
-                            }
-                        }) {
-                            ZStack {
-                                // 圆角矩形框
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color("#1C1E22"))
-                                    .frame(width: 107, height: 70)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(selectedColorOption == 1 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
-                                    )
-                                
-                                // 图标和文字
-                                VStack(spacing: 5) {
-                                    Image("word")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 20, height: 20)
-                                    
-                                    Text("内容")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                        }
-                        .disabled(selectedColorOption == 1) // 当已选中时禁用点击反馈
-                        
-                        Spacer() // 中间自动分配空间
-                        
-                        // 更多选项
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedColorOption = 2
-                                showColorControls = false // 隐藏圆形色块和滑动按钮
-                            }
-                        }) {
-                            ZStack {
-                                // 圆角矩形框
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color("#1C1E22"))
-                                    .frame(width: 107, height: 70)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(selectedColorOption == 2 ? Color.white : Color("#3E3E3E"), lineWidth: 2)
-                                    )
-                                
-                                // 图标和文字
-                                VStack(spacing: 5) {
-                                    Image("more")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 20, height: 20)
-                                    
-                                    Text("更多")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                        }
-                        .disabled(selectedColorOption == 2) // 当已选中时禁用点击反馈
-                        
-                        Spacer(minLength: 12) // 右侧距离屏幕24点
-                    }
-                    .offset(y: 455/2 + 24 + 180) // 滑动选择按钮下方44点的位置
-                    
-                    // 添加颜色选择器，放在图标选项栏下方
-                    if showColorControls {
-                        ColorSelector(
-                            selectedOption: $selectedSlideOption, // 使用滑动选项的索引
-                            frameColor: $frameColor,
-                            titleTextColor: $titleTextColor,
-                            dateTextColor: $dateTextColor,
-                            locationTextColor: $locationTextColor,
-                            iconColor: $iconColor
-                        )
-                        .offset(y: 455/2 + 24 + 80) // 图标选项栏下方10点的位置
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .bottom)),
-                            removal: .opacity.combined(with: .move(edge: .bottom))
-                        ))
-                        .animation(.easeInOut(duration: 0.3), value: showColorControls)
-                    }
-                    
-                    // 添加更多选项的UI
-                    if selectedColorOption == 2 {
-                        VStack(spacing: 0) {
-                            // 日期选项
-                            Button(action: {
-                                isSettingsPresented = true
-                            }) {
-                                HStack {
-                                    Image("date")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 20, height: 20)
-                                    
-                                    Text("日期")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                    
-                                    Spacer()
-                                    
-                                    Text(isUsingCustomDate() ? formatDate(customDate) : (getImageDate(selectedImage) ?? "未知日期"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.horizontal, 16)
-                                .frame(height: 44)
-                                .background(Color("#1C1E22"))
-                                .cornerRadius(8)
-                            }
-                            
-                            // 地点选项
-                            Button(action: {
-                                isSettingsPresented = true
-                            }) {
-                                HStack {
-                                    Image("map_b")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 20, height: 20)
-                                    
-                                    Text("地点")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                    
-                                    Spacer()
-                                    
-                                    Text(getLocationText())
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.horizontal, 16)
-                                .frame(height: 44)
-                                .background(Color("#1C1E22"))
-                                .cornerRadius(8)
-                            }
-                            .padding(.top, 8)
-                        }
-                        .frame(width: 343) // 设置固定宽度
-                        .offset(y: 455/2 + 85) // 白色背景下方85点的位置
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .bottom)),
-                            removal: .opacity.combined(with: .move(edge: .bottom))
-                        ))
-                        .animation(.easeInOut(duration: 0.3), value: selectedColorOption)
-                    }
+                    // 功能设置区域
+                    FunctionSettingsView(
+                        selectedColorOption: $selectedColorOption,
+                        showColorControls: $showColorControls,
+                        selectedSlideOption: $selectedSlideOption,
+                        frameColor: $frameColor,
+                        titleTextColor: $titleTextColor,
+                        dateTextColor: $dateTextColor,
+                        locationTextColor: $locationTextColor,
+                        iconColor: $iconColor,
+                        userNameColor: $userNameColor,
+                        isSettingsPresented: $isSettingsPresented
+                    )
+
                 }
                 
                 Spacer()
