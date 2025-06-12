@@ -191,7 +191,9 @@ struct FramesixView: View {
                     // 添加文字和位置信息，位于白色背景下方328点处，左右居中
                     VStack(alignment: .center, spacing: 6) {
                         VStack(alignment: .center, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)
@@ -573,7 +575,9 @@ extension FramesixView {
                     // 添加文字和位置信息，位于白色背景下方328点处，左右居中
                     VStack(alignment: .center, spacing: 6) {
                         VStack(alignment: .center, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)
@@ -683,7 +687,9 @@ extension FramesixView {
                     // 添加文字和位置信息，位于白色背景下方328点处，左右居中
                     VStack(alignment: .center, spacing: 6) {
                         VStack(alignment: .center, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)

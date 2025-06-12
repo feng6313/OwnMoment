@@ -199,7 +199,9 @@ struct FrameoneView: View {
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
                         VStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)
@@ -528,7 +530,8 @@ struct ColorSelector_Previews: PreviewProvider {
             titleTextColor: .constant(.black),
             dateTextColor: .constant(.orange),
             locationTextColor: .constant(.black),
-            iconColor: .constant(.black)
+            iconColor: .constant(.black),
+            userNameColor: .constant(.black)
         )
     }
 }
@@ -580,10 +583,10 @@ struct SlideSelector: View {
         self._selectedOption = selectedOption
     }
     
-    private let options = ["边框", "文字", "时间", "地点", "图标"]
+    private let options = ["边框", "文字", "时间", "地点", "图标", "用户名"]
     private let selectorWidth: CGFloat = 330
     private let selectorHeight: CGFloat = 34
-    private let optionWidth: CGFloat = 65
+    private let optionWidth: CGFloat = 55
     private let optionSpacing: CGFloat = 0
     
     var body: some View {
@@ -667,7 +670,8 @@ struct ColorSelector: View {
         (0, 1), // 文字 - 默认黑色
         (0, 4), // 时间 - 默认橙色
         (0, 1), // 地点 - 默认黑色
-        (0, 1)  // 图标 - 默认黑色
+        (0, 1), // 图标 - 默认黑色
+        (0, 1)  // 用户名 - 默认黑色
     ]
     
     // 颜色块大小和间距
@@ -682,16 +686,19 @@ struct ColorSelector: View {
     @Binding var dateTextColor: Color
     @Binding var locationTextColor: Color
     @Binding var iconColor: Color
+    @Binding var userNameColor: Color
     
     // 添加初始化方法
     init(selectedOption: Binding<Int>, frameColor: Binding<Color>, titleTextColor: Binding<Color>, 
-         dateTextColor: Binding<Color>, locationTextColor: Binding<Color>, iconColor: Binding<Color>) {
+         dateTextColor: Binding<Color>, locationTextColor: Binding<Color>, iconColor: Binding<Color>,
+         userNameColor: Binding<Color> = .constant(Color("#1C1E22"))) {
         self._selectedOption = selectedOption
         self._frameColor = frameColor
         self._titleTextColor = titleTextColor
         self._dateTextColor = dateTextColor
         self._locationTextColor = locationTextColor
         self._iconColor = iconColor
+        self._userNameColor = userNameColor
     }
     
     // 查找颜色在colors数组中的索引
@@ -717,6 +724,7 @@ struct ColorSelector: View {
         selectedIndices[2] = findColorIndex(for: dateTextColor)
         selectedIndices[3] = findColorIndex(for: locationTextColor)
         selectedIndices[4] = findColorIndex(for: iconColor)
+        selectedIndices[5] = findColorIndex(for: userNameColor)
     }
     
     var body: some View {
@@ -779,12 +787,15 @@ struct ColorSelector: View {
                 frameColor = newColor
             case 1: // 文字
                 titleTextColor = newColor
+                userNameColor = newColor // 同步更新用户名颜色
             case 2: // 时间
                 dateTextColor = newColor
             case 3: // 地点
                 locationTextColor = newColor
             case 4: // 图标
                 iconColor = newColor
+            case 5: // 用户名
+                userNameColor = newColor
             default:
                 break
             }
@@ -870,7 +881,9 @@ extension FrameoneView {
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
                         VStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)
@@ -981,7 +994,9 @@ extension FrameoneView {
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 2) { 
                         VStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)

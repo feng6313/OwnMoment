@@ -208,7 +208,9 @@ struct FramefiveView: View {
                     // 添加图片下方的文字信息
                     VStack(alignment: .leading, spacing: 6) {
                         VStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(formatTextForTwoLines(memoryText).enumerated()), id: \.offset) { index, line in
+                            let formattedLines = formatTextForTwoLines(memoryText)
+                            let enumeratedLines = Array(formattedLines.enumerated())
+                            ForEach(enumeratedLines, id: \.offset) { index, line in
                                 Text(line)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(titleTextColor)
